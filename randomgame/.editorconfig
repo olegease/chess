@@ -1,0 +1,13 @@
+# Rules in this file were initially inferred by Visual Studio IntelliCode from the D:\olegease\dev\projects\github\public\chess\randomgame\ codebase based on best match to current usage at 13.02.2021
+# You can modify the rules from these initially generated values to suit your own policies
+# You can learn more about editorconfig here: https://docs.microsoft.com/en-us/visualstudio/ide/editorconfig-code-style-settings-reference
+root = true
+
+[*.{cxx,ixx}]
+indent_style = space
+indent_size = 4
+tab_width = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
