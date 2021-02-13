@@ -66,6 +66,4 @@ int main()
     }
 
     print_board(squares);
-
-    std::cout << "hello" << std::endl;
 }
