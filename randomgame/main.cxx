@@ -111,7 +111,7 @@ public:
         for (Move dirty_move : dirty_moves) {
             bool valid = true;
             Board dirty_board = board();
-            std::swap(dirty_board[dirty_move.from], dirty_board[dirty_move.to]);
+            board_move(dirty_board, dirty_move);
             Position king_position = king(dirty_board);
             if (king_position == BOARD_SIZE) return {};
             Moves check_moves = ::moves(dirty_board, opponent());
@@ -126,6 +126,23 @@ public:
         return valid_moves;
     }
 
+    void board_move(Board& board, Move move) const
+    {
+        std::random_device random_device;
+        std::mt19937_64 random_generator(random_device());
+        Piece &piece_from = board[move.from];
+        Piece &piece_to = board[move.to];
+        // promotion checker
+        if (piece_from.name == PN_P) {
+            if (move.row_from() == 1 || move.row_from() == 8) {
+                std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
+                piece_from = { piece_from.color, promotion_variants[promotion_destribution(random_generator)] };
+            }
+        }
+        if (piece_to.color == opponent()) piece_to.clear();
+        std::swap(piece_from, piece_to);
+    }
+
     bool move() {
         std::random_device random_device;
         std::mt19937_64 random_generator(random_device());
@@ -133,6 +150,7 @@ public:
         if (moves.empty()) return false;
         std::uniform_int_distribution<std::size_t> move_destribution(0, moves.size() - 1);
         Move move = moves[move_destribution(random_generator)];
+        board_move(board_, move);
         Piece &piece_from = board_[move.from];
         Piece &piece_to = board_[move.to];
         // castling checker
@@ -141,16 +159,8 @@ public:
             if (move.col_from() == 1) lrock_moved();
             if (move.col_from() == 8) rrock_moved();
         }
-        // promotion checker
-        if (piece_from.name == PN_P) {
-            if (move.row_from() == 1 || move.row_from() == 8) {
-                std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
-                piece_from = { piece_from.color, promotion_variants[promotion_destribution(random_generator)] };
-            }
-        }
+        
         notation_.push_back(move);
-        if (piece_to.color == opponent()) piece_to.clear();
-        std::swap(piece_from, piece_to);
         
         return true;
     }
