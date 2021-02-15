@@ -21,9 +21,16 @@ struct Piece
 {
     enum class Color : unsigned { Null = 0, White, Black };
     enum class Name : unsigned { Null = 0, Pawn, Rock, Knight, Bishop, Queen, King };
+    static constexpr std::array< const char *, 7 > Titles { "Null", "Pawn", "Rock", "Knight", "Bishop", "Queen", "King"};
     Color color;
     Name name;
     void clear() { color = Color::Null; name = Name::Null; }
+
+    friend std::ostream& operator<<(std::ostream& os, Piece piece)
+    {
+        os << Titles[static_cast<int>(piece.name)];
+        return os;
+    }
 };
 
 
@@ -37,6 +44,15 @@ struct Move {
     int8_t col_from() { return Move::col(from); }
     int8_t row_to() { return Move::row(to); }
     int8_t col_to() { return Move::col(to); }
+
+    friend std::ostream& operator<<(std::ostream& osm, Move move)
+    {
+        std::array< char, 8 > letter{ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'};
+        std::array< char, 8 > number{ '8', '7', '6', '5', '4', '3', '2', '1'};
+        osm << letter[move.col_from() - 1LL] << number[move.row_from() - 1LL] << "::"
+            << letter[move.col_to() - 1LL] << number[move.row_to() - 1LL];
+        return osm;
+    }
 };
 // constansts
 const Piece::Color PCN = Piece::Color::Null; 
@@ -53,6 +69,7 @@ const Piece::Name PN_K = Piece::Name::King;
 // aliases
 using Board = std::array< Piece, BOARD_SIZE >;
 using Moves = std::vector< Move >;
+using Pieces = std::vector< Piece >;
 using Player = Piece::Color;
 using Position = int;
 
@@ -71,7 +88,7 @@ class Game
     std::map< Piece::Color, bool > rrock_moved_{ {PC_W, false}, {PC_B, false} };
     Moves notation_;
     Board board_;
-    std::vector< Piece > promotions_;
+    Pieces promotions_;
 public:
     Game() : player_(PC_W), board_(board_init()) { }
     Board board() const { return board_; }
@@ -93,6 +110,8 @@ public:
     void rrock_moved(Player color) { rrock_moved_[color] = true; }
     void rrock_moved() { rrock_moved_[player_] = true; }
 
+    Pieces promotions() const { return promotions_; }
+
     Position king(const Board& board) const {
         Position index = 0;
         for (Piece piece : board) {
@@ -101,6 +120,8 @@ public:
         }
         return BOARD_SIZE;
     }
+
+    Moves notation() const { return notation_; }
     void change_player() { player_ = (player_ == PC_W) ? PC_B : PC_W; }
     int total_moves() const { return static_cast<int>(notation_.size() / 2); }
     Player opponent() const { return (player_ == PC_W) ? PC_B : PC_W; }
@@ -213,7 +234,9 @@ public:
 // MAIN
 int main()
 {
-    for (int games = 1; games <= 10000; ++games) {
+    int min_moves = 100;
+    Game min_game;
+    for (int games = 1; games <= 1000; ++games) {
         Game game{};
         //std::cout << game;
         while (true) {
@@ -224,6 +247,21 @@ int main()
             //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         if ((games % 100) == 0) std::cout << games << std::endl;
+        if (min_moves > game.total_moves()) {
+            min_moves = game.total_moves();
+            min_game = game;
+        }
+    }
+    std::cout << "Min game record = " << min_game.total_moves() << std::endl;
+    Moves notation = min_game.notation();
+    for (Piece promotion : min_game.promotions()) {
+        std::cout << "->" << promotion;
+    }
+    std::cout << std::endl;
+    for (int i = 0; i < min_game.total_moves(); ++i) {
+        if (i % 2 == 0) std::cout << (i / 2 + 1) << ". ";
+        std::cout  << notation[i] << "\t";
+        if (i % 2) std::cout << std::endl;
     }
 }
 
