@@ -93,9 +93,9 @@ public:
     void rrock_moved(Player color) { rrock_moved_[color] = true; }
     void rrock_moved() { rrock_moved_[player_] = true; }
 
-    Position king() const {
+    Position king(const Board& board) const {
         Position index = 0;
-        for (Piece piece : board_) {
+        for (Piece piece : board) {
             if (piece.name == PN_K && piece.color == player_) return index;
             index++;
         }
@@ -108,10 +108,12 @@ public:
     Moves valid_moves() const {
         Moves dirty_moves = ::moves(board_, player_);
         Moves valid_moves;
-        Position king_position = king();
         for (Move dirty_move : dirty_moves) {
             bool valid = true;
             Board dirty_board = board();
+            std::swap(dirty_board[dirty_move.from], dirty_board[dirty_move.to]);
+            Position king_position = king(dirty_board);
+            if (king_position == BOARD_SIZE) return {};
             Moves check_moves = ::moves(dirty_board, opponent());
             for (Move check_move : check_moves) {
                 if (check_move.to == king_position) {
