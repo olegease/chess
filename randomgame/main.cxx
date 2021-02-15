@@ -134,7 +134,7 @@ public:
         Piece &piece_to = board[move.to];
         // promotion checker
         if (piece_from.name == PN_P) {
-            if (move.row_from() == 1 || move.row_from() == 8) {
+            if (move.row_to() == 1 || move.row_to() == 8) {
                 std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
                 piece_from = { piece_from.color, promotion_variants[promotion_destribution(random_generator)] };
             }
