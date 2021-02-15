@@ -63,11 +63,11 @@ int main()
     Piece::Color player = Piece::Color::White;
     std::random_device random_device;
     std::mt19937_64 random_move_gen(random_device());
-    for (int games = 1; games <= 1; ++games) {
+    for (int games = 1; games <= 10000; ++games) {
         Board squares = board_init();
         int game_moves_count = 0;
         while (true) {
-            print_board(squares);
+            //print_board(squares);
             Moves player_moves = moves(squares, player);
             if (!player_moves.size()) break;
             std::uniform_int_distribution<> random_move_destribution(0, player_moves.size() - 1);
@@ -76,7 +76,7 @@ int main()
             game_moves_count++;
             if (game_moves_count > 200) break;
             change_player(player);
-            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
         if ((games % 1000) == 0) std::cout << games << std::endl;
     }
@@ -239,7 +239,6 @@ Moves moves(const Board& squares, Piece::Color player_color)
                 break;
             } // kNight
             case Piece::Name::Bishop: {
-                break;
             queen_bishop:
             king_bishop:
                 std::array< int, 4 > index_adds{-9, -7, 7, 9};
@@ -276,7 +275,6 @@ Moves moves(const Board& squares, Piece::Color player_color)
                 break;
             } // Bishop
             case Piece::Name::Queen: {
-            break;
                 goto queen_bishop;
             bishop_queen:
                 goto queen_rock;
@@ -284,7 +282,6 @@ Moves moves(const Board& squares, Piece::Color player_color)
                 break;
             } // Queen
             case Piece::Name::King: {
-            break;
                 goto king_bishop;
             bishop_king:
                 goto king_rock;
