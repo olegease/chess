@@ -209,7 +209,7 @@ int main()
             std::cout << game;
             if (game.total_moves() > 100) break;
             game.change_player();
-            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         if ((games % 1000) == 0) std::cout << games << std::endl;
     }
