@@ -174,8 +174,8 @@ public:
                     }
             }
         };
-        auto cout = [&color_name_char, &squares](int i) {
-            os << color_name_char[squares[i].color][squares[i].name];
+        auto cout = [&os, &color_name_char, &game](int i) {
+            os << color_name_char[game.board_[i].color][game.board_[i].name];
         };
 #endif
         for (int i = 0; i < BOARD_SIZE; ++i) {
