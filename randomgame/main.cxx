@@ -110,12 +110,16 @@ public:
         Moves valid_moves;
         Position king_position = king();
         for (Move dirty_move : dirty_moves) {
+            bool valid = true;
             Board dirty_board = board();
             Moves check_moves = ::moves(dirty_board, opponent());
             for (Move check_move : check_moves) {
-                if (check_move.to == king_position) continue;
+                if (check_move.to == king_position) {
+                    valid = false;
+                    break;
+                }
             }
-            valid_moves.push_back(dirty_move);
+            if (valid) valid_moves.push_back(dirty_move);
         }
         return valid_moves;
     }
