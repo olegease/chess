@@ -23,7 +23,11 @@ struct Piece
     enum class Name : unsigned { Null = 0, Pawn, Rock, Knight, Bishop, Queen, King };
     Color color;
     Name name;
+    void clear() { color = Color::Null; name = Name::Null; }
 };
+
+
+
 struct Move {
     int from;
     int to;
@@ -49,6 +53,8 @@ const Piece::Name PN_K = Piece::Name::King;
 // aliases
 using Board = std::array< Piece, BOARD_SIZE >;
 using Moves = std::vector< Move >;
+using Player = Piece::Color;
+using Position = int;
 
 // function definitions
 void print_board(const Board& squares);
@@ -57,26 +63,102 @@ void change_player(Piece::Color& current_player);
 void board_make_move(Board& squares, Move move);
 Board board_init();
 
+class Game
+{
+    static constexpr std::array< Piece::Name, 4 > promotion_variants{ PN_Q, PN_R, PN_B, PN_N };
+    Player player_;
+    std::map< Piece::Color, bool > king_moved_{ {PC_W, false}, {PC_B, false} };
+    std::map< Piece::Color, bool > lrock_moved_{ {PC_W, false}, {PC_B, false} };
+    std::map< Piece::Color, bool > rrock_moved_{ {PC_W, false}, {PC_B, false} };
+    Moves notation_;
+    Board board_;
+    std::vector< Piece > promotions;
+public:
+    Game() : player_(PC_W), board_(board_init()) { }
+    Board board() const { return board_; }
+    bool is_king_moved(Player color) { return king_moved_[color]; }
+    bool is_king_moved() { return is_king_moved(player_); }
+
+    void king_moved(Player color) { king_moved_[color] = true; }
+    void king_moved() { king_moved_[player_] = true; }
+
+    bool is_lrock_moved(Player color) { return lrock_moved_[color]; }
+    bool is_lrock_moved() { return lrock_moved_[player_]; }
+
+    void lrock_moved(Player color) { lrock_moved_[color] = true; }
+    void lrock_moved() { lrock_moved_[player_] = true; }
+
+    bool is_rrock_moved(Player color) { return rrock_moved_[color]; }
+    bool is_rrock_moved() { return rrock_moved_[player_]; }
+
+    void rrock_moved(Player color) { rrock_moved_[color] = true; }
+    void rrock_moved() { rrock_moved_[player_] = true; }
+
+    Position king() const {
+        for (Position index = 0; Piece piece : board_) {
+            if (piece.name == PN_K && piece.color == player_) return index;
+            index++;
+        }
+    }
+    void change_player() { player_ = (player_ == PC_W) ? PC_B : PC_W; }
+    int total_moves() { return notation_.size() / 2; }
+    Player opponent() const { return (player_ == PC_W) ? PC_B : PC_W; }
+    Moves valid_moves() const {
+        Moves dirty_moves = ::moves(board_, player_);
+        Moves valid_moves;
+        Position king_position = king();
+        for (Move dirty_move : dirty_moves) {
+            Board dirty_board = board();
+            Moves check_moves = ::moves(dirty_board, opponent());
+            for (Move check_move : check_moves) {
+                if (check_move.to == king_position) continue;
+            }
+            valid_moves.push_back(dirty_move);
+        }
+        return valid_moves;
+    }
+
+    bool move() {
+        std::random_device random_device;
+        std::mt19937_64 random_generator(random_device());
+        Moves moves = valid_moves();
+        if (moves.empty()) return false;
+        std::uniform_int_distribution<std::size_t> move_destribution(0, moves.size() - 1);
+        Move move = moves[move_destribution(random_generator)];
+        Piece &piece_from = board_[move.from];
+        Piece &piece_to = board_[move.to];
+        // castling checker
+        if (piece_from.name == PN_K) king_moved();
+        if (piece_from.name == PN_R) {
+            if (move.col_from() == 1) lrock_moved();
+            if (move.col_from() == 8) rrock_moved();
+        }
+        // promotion checker
+        if (piece_from.name == PN_P) {
+            if (move.row_from() == 1 || move.row_from() == 8) {
+                std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
+                piece_from = { piece_from.color, promotion_variants[promotion_destribution(random_generator)] };
+            }
+        }
+        notation_.push_back(move);
+        if (piece_to.color == opponent()) piece_to.clear();
+        std::swap(piece_from, piece_to);
+        
+        return true;
+    }
+};
+
 // MAIN
 int main()
 {
-    Piece::Color player = Piece::Color::White;
-    std::random_device random_device;
-    std::mt19937_64 random_move_gen(random_device());
     for (int games = 1; games <= 100; ++games) {
-        Board squares = board_init();
-        int game_moves_count = 0;
+        Game game{};
         while (true) {
-            print_board(squares);
-            Moves player_moves = moves(squares, player);
-            if (!player_moves.size()) break;
-            std::uniform_int_distribution<std::size_t> random_move_destribution(0, player_moves.size() - 1);
-            Move chosen_move = player_moves[random_move_destribution(random_move_gen)];
-            board_make_move(squares, chosen_move);
-            game_moves_count++;
-            if (game_moves_count > 200) break;
-            change_player(player);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            print_board(game.board());
+            if (!game.move()) break;
+            if (game.total_moves() > 100) break;
+            game.change_player();
+            std::this_thread::sleep_for(std::chrono::milliseconds(8000));
         }
         if ((games % 1000) == 0) std::cout << games << std::endl;
     }
