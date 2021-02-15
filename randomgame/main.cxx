@@ -13,7 +13,7 @@ import std.core;
 #include <thread>
 #endif
 
-const auto BOARD_DIMANSION = 8;
+const auto BOARD_DIMENSION = 8;
 const auto BOARD_SIZE = 64;
 
 // structs
@@ -27,8 +27,8 @@ struct Piece
 struct Move {
     int from;
     int to;
-    static int8_t row(int8_t index) { return (index / BOARD_DIMANSION) + 1; }
-    static int8_t col(int8_t index) { return (index % BOARD_DIMANSION) + 1; }
+    static int8_t row(int8_t index) { return (index / BOARD_DIMENSION) + 1; }
+    static int8_t col(int8_t index) { return (index % BOARD_DIMENSION) + 1; }
     int8_t row_from() { return Move::row(from); }
     int8_t col_from() { return Move::col(from); }
     int8_t row_to() { return Move::row(to); }
@@ -70,7 +70,7 @@ int main()
             print_board(squares);
             Moves player_moves = moves(squares, player);
             if (!player_moves.size()) break;
-            std::uniform_int_distribution<> random_move_destribution(0, player_moves.size() - 1);
+            std::uniform_int_distribution<std::size_t> random_move_destribution(0, player_moves.size() - 1);
             Move chosen_move = player_moves[random_move_destribution(random_move_gen)];
             board_make_move(squares, chosen_move);
             game_moves_count++;
@@ -100,16 +100,16 @@ void board_make_move(Board& squares, Move move)
 
 Board board_init()
 {
-    Board squares;
-    std::array< Piece::Name, BOARD_DIMANSION > nopawn_layers{ PN_R, PN_N, PN_B, PN_Q, PN_K, PN_B, PN_N, PN_R };
-    std::array< Piece::Name, BOARD_DIMANSION > pawn_layers{ PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P };
-    std::array< Piece::Name, BOARD_DIMANSION > null_layers{ PNN, PNN, PNN, PNN, PNN, PNN, PNN, PNN };
-    std::array< Piece::Color, BOARD_DIMANSION > color_layer { PC_B, PC_B, PCN, PCN, PCN, PCN, PC_W, PC_W };
+    Board squares{};
+    std::array< Piece::Name, BOARD_DIMENSION > nopawn_layers{ PN_R, PN_N, PN_B, PN_Q, PN_K, PN_B, PN_N, PN_R };
+    std::array< Piece::Name, BOARD_DIMENSION > pawn_layers{ PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P };
+    std::array< Piece::Name, BOARD_DIMENSION > null_layers{ PNN, PNN, PNN, PNN, PNN, PNN, PNN, PNN };
+    std::array< Piece::Color, BOARD_DIMENSION > color_layer { PC_B, PC_B, PCN, PCN, PCN, PCN, PC_W, PC_W };
 
-    std::array< std::array< Piece::Name, BOARD_DIMANSION >, BOARD_DIMANSION > name_layers{ nopawn_layers, pawn_layers, null_layers, null_layers, null_layers, null_layers, pawn_layers, nopawn_layers };
-    for (int color_layer_i = 0, square_index = 0; color_layer_i < BOARD_DIMANSION; color_layer_i++ ) {
-        std::array< Piece::Name, BOARD_DIMANSION > name_layer = name_layers[color_layer_i];
-        for (int name_layer_i = 0; name_layer_i < BOARD_DIMANSION; name_layer_i++) {
+    std::array< std::array< Piece::Name, BOARD_DIMENSION >, BOARD_DIMENSION > name_layers{ nopawn_layers, pawn_layers, null_layers, null_layers, null_layers, null_layers, pawn_layers, nopawn_layers };
+    for (int color_layer_i = 0, square_index = 0; color_layer_i < BOARD_DIMENSION; color_layer_i++ ) {
+        std::array< Piece::Name, BOARD_DIMENSION > name_layer = name_layers[color_layer_i];
+        for (int name_layer_i = 0; name_layer_i < BOARD_DIMENSION; name_layer_i++) {
             squares[square_index] = Piece{color_layer[color_layer_i], name_layer[name_layer_i]};
             square_index++;
         }
@@ -117,11 +117,10 @@ Board board_init()
     return squares;
 }
 
-//#define UNICODE_CHESS
 void print_board(const Board& squares)
 {
-#ifndef UNICODE_CHESS
     std::cout << "================" << std::endl;
+#ifndef UNICODE_CHESS
     std::map< Piece::Color, char > color_char{ {PCN, ' '}, {PC_W, '+'}, {PC_B, '-'} };
     std::map< Piece::Name, char > name_char{
         {PNN, ' '}, {PN_B, 'B'}, {PN_K, 'K'}, {PN_N, 'N'},
@@ -135,12 +134,12 @@ void print_board(const Board& squares)
         {PCN, {{PNN, "  "}}},
         {PC_W,  {
                     {PN_K, " \u2654"}, {PN_Q, " \u2655"}, {PN_R, " \u2656"},
-                    {PN_B, "\u2657"}, {PN_N, "\u2658"}, {PN_P, " \u2659"}
+                    {PN_B, " \u2657"}, {PN_N, " \u2658"}, {PN_P, " \u2659"}
                 }
         },
         {PC_B,  {
                     {PN_K, " \u265A"}, {PN_Q, " \u265B"}, {PN_R, " \u265C"},
-                    {PN_B, "\u265D"}, {PN_N, "\u265E"}, {PN_P, " \u265F"}
+                    {PN_B, " \u265D"}, {PN_N, " \u265E"}, {PN_P, " \u265F"}
                 }
         }
     };
@@ -157,50 +156,49 @@ void print_board(const Board& squares)
 Moves moves(const Board& squares, Piece::Color player_color)
 {
     Moves moves;
-    Piece::Color oppenent_color = player_color == Piece::Color::White ? Piece::Color::Black : Piece::Color::White; 
+    Piece::Color opponent_color = player_color == Piece::Color::White ? Piece::Color::Black : Piece::Color::White; 
     for(int index = 0, index_current = 0; index < squares.size(); index++) {
-        auto piece = squares[index];
-        Move move;
-        move.from = index;
+        Piece piece = squares[index];
+        Move move{index};
         auto push_move = [&move, &moves](){ moves.push_back(move); };
         if (piece.color == player_color) {
             switch (piece.name) {
             case Piece::Name::Pawn: {
                 if (player_color == Piece::Color::Black) {
                     if (index < 56 ) {
-                        move.to = index + BOARD_DIMANSION;
+                        move.to = index + BOARD_DIMENSION;
                         if (squares[move.to].name == PNN) {
                             push_move();
                             int doublemove_row = 2;
-                            move.to = index + BOARD_DIMANSION * 2;
+                            move.to = index + BOARD_DIMENSION * 2;
                             if (move.row_from() == doublemove_row && squares[move.to].name == PNN) push_move();
                         }
                         std::array< Move, 2 > side_moves{
-                            Move{move.from, index + BOARD_DIMANSION - 1},
-                            Move{move.from, index + BOARD_DIMANSION + 1}
+                            Move{move.from, index + BOARD_DIMENSION - 1},
+                            Move{move.from, index + BOARD_DIMENSION + 1}
                         };
                         for (auto& side_move : side_moves) {
                             move.to = side_move.to;
-                            if (move.to < 64 && (move.row_to() - move.row_from() == 1) && squares[move.to].color == oppenent_color) push_move();
+                            if (move.to < 64 && (move.row_to() - move.row_from() == 1) && squares[move.to].color == opponent_color) push_move();
                         }
                     }
                 } // white pawn
                 else if (player_color == Piece::Color::White) {
                     if (index > 7) {
-                        move.to = index - BOARD_DIMANSION;
+                        move.to = index - BOARD_DIMENSION;
                         if (squares[move.to].name == PNN) {
                             push_move();
                             int doublemove_row = 7;
-                            move.to = index - BOARD_DIMANSION * 2;
+                            move.to = index - BOARD_DIMENSION * 2;
                             if (move.row_from() == doublemove_row && squares[move.to].name == PNN) push_move();
                         }
                         std::array< Move, 2 > side_moves{
-                            Move{move.from, index - BOARD_DIMANSION - 1},
-                            Move{move.from, index - BOARD_DIMANSION + 1}
+                            Move{move.from, index - BOARD_DIMENSION - 1},
+                            Move{move.from, index - BOARD_DIMENSION + 1}
                         };
                         for (auto& side_move : side_moves) {
                             move.to = side_move.to;
-                            if (move.to > 0 && (move.row_from() - move.row_to() == 1) && squares[move.to].color == oppenent_color) push_move();
+                            if (move.to > 0 && (move.row_from() - move.row_to() == 1) && squares[move.to].color == opponent_color) push_move();
                         }
                     }
                 } // black pawn
@@ -221,7 +219,7 @@ Moves moves(const Board& squares, Piece::Color player_color)
                     while (f_inboard() && f_correct()) {
                         Piece::Color tocolor = squares[move.to].color;
                         if (tocolor == player_color) break;
-                        else if (tocolor == oppenent_color) {
+                        else if (tocolor == opponent_color) {
                             push_move();
                             break;
                         }
@@ -277,7 +275,7 @@ Moves moves(const Board& squares, Piece::Color player_color)
                     while (f_inboard() && f_updown() && f_leftright()) {
                         Piece::Color tocolor = squares[move.to].color;
                         if (tocolor == player_color) break;
-                        else if (tocolor == oppenent_color) {
+                        else if (tocolor == opponent_color) {
                             push_move();
                             break;
                         }
