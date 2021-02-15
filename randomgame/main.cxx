@@ -102,8 +102,9 @@ public:
         return BOARD_SIZE;
     }
     void change_player() { player_ = (player_ == PC_W) ? PC_B : PC_W; }
-    int total_moves() { return static_cast<int>(notation_.size() / 2); }
+    int total_moves() const { return static_cast<int>(notation_.size() / 2); }
     Player opponent() const { return (player_ == PC_W) ? PC_B : PC_W; }
+    Move last_move() const { return notation_.back(); }
     Moves valid_moves() const {
         Moves dirty_moves = ::moves(board_, player_);
         Moves valid_moves;
@@ -150,7 +151,14 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, const Game& game)
     {
-        os << "================" << std::endl;
+        if (game.total_moves() > 0) {
+            Move last = game.last_move();
+            std::array< char, 8 > letter{ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'};
+            std::array< char, 8 > number{ '8', '7', '6', '5', '4', '3', '2', '1'};
+            os << "====="
+                << letter[last.col_from() - 1LL] << number[last.row_from() - 1LL] << "::"
+                << letter[last.col_to() - 1LL] << number[last.row_to() - 1LL] << "====="  << std::endl;
+        }
 #ifndef UNICODE_CHESS
         std::map< Piece::Color, char > color_char{ {PCN, ' '}, {PC_W, '+'}, {PC_B, '-'} };
         std::map< Piece::Name, char > name_char{
