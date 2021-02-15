@@ -57,7 +57,6 @@ using Player = Piece::Color;
 using Position = int;
 
 // function definitions
-void print_board(const Board& squares);
 Moves moves(const Board& squares, Piece::Color color);
 void change_player(Piece::Color& current_player);
 void board_make_move(Board& squares, Move move);
@@ -148,6 +147,43 @@ public:
         
         return true;
     }
+
+    friend std::ostream& operator<<(std::ostream& os, const Game& game)
+    {
+        os << "================" << std::endl;
+#ifndef UNICODE_CHESS
+        std::map< Piece::Color, char > color_char{ {PCN, ' '}, {PC_W, '+'}, {PC_B, '-'} };
+        std::map< Piece::Name, char > name_char{
+            {PNN, ' '}, {PN_B, 'B'}, {PN_K, 'K'}, {PN_N, 'N'},
+            {PN_P, 'p'}, {PN_Q, 'Q'}, {PN_R, 'R'}
+        };
+        auto cout = [&os, &color_char, &name_char, &game](int i) {
+            os << color_char[game.board_[i].color] << name_char[game.board_[i].name];
+        };
+#else
+        std::map< Piece::Color, std::map< Piece::Name, std::string > > color_name_char{
+            {PCN, {{PNN, "  "}}},
+            {PC_W,  {
+                        {PN_K, " \u2654"}, {PN_Q, " \u2655"}, {PN_R, " \u2656"},
+                        {PN_B, " \u2657"}, {PN_N, " \u2658"}, {PN_P, " \u2659"}
+                    }
+            },
+            {PC_B,  {
+                        {PN_K, " \u265A"}, {PN_Q, " \u265B"}, {PN_R, " \u265C"},
+                        {PN_B, " \u265D"}, {PN_N, " \u265E"}, {PN_P, " \u265F"}
+                    }
+            }
+        };
+        auto cout = [&color_name_char, &squares](int i) {
+            os << color_name_char[squares[i].color][squares[i].name];
+        };
+#endif
+        for (int i = 0; i < BOARD_SIZE; ++i) {
+            cout(i);
+            if ((i + 1) % 8 == 0) os << std::endl;
+        }
+        return os;
+    }
 };
 
 // MAIN
@@ -155,12 +191,13 @@ int main()
 {
     for (int games = 1; games <= 100; ++games) {
         Game game{};
+        std::cout << game;
         while (true) {
-            print_board(game.board());
             if (!game.move()) break;
+            std::cout << game;
             if (game.total_moves() > 100) break;
             game.change_player();
-            std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
         if ((games % 1000) == 0) std::cout << games << std::endl;
     }
@@ -199,42 +236,6 @@ Board board_init()
         }
     }
     return squares;
-}
-
-void print_board(const Board& squares)
-{
-    std::cout << "================" << std::endl;
-#ifndef UNICODE_CHESS
-    std::map< Piece::Color, char > color_char{ {PCN, ' '}, {PC_W, '+'}, {PC_B, '-'} };
-    std::map< Piece::Name, char > name_char{
-        {PNN, ' '}, {PN_B, 'B'}, {PN_K, 'K'}, {PN_N, 'N'},
-        {PN_P, 'p'}, {PN_Q, 'Q'}, {PN_R, 'R'}
-    };
-    auto cout = [&color_char, &name_char, &squares](int i) {
-        std::cout << color_char[squares[i].color] << name_char[squares[i].name];
-    };
-#else
-    std::map< Piece::Color, std::map< Piece::Name, std::string > > color_name_char{
-        {PCN, {{PNN, "  "}}},
-        {PC_W,  {
-                    {PN_K, " \u2654"}, {PN_Q, " \u2655"}, {PN_R, " \u2656"},
-                    {PN_B, " \u2657"}, {PN_N, " \u2658"}, {PN_P, " \u2659"}
-                }
-        },
-        {PC_B,  {
-                    {PN_K, " \u265A"}, {PN_Q, " \u265B"}, {PN_R, " \u265C"},
-                    {PN_B, " \u265D"}, {PN_N, " \u265E"}, {PN_P, " \u265F"}
-                }
-        }
-    };
-    auto cout = [&color_name_char, &squares](int i) {
-        std::cout << color_name_char[squares[i].color][squares[i].name];
-    };
-#endif
-    for (int i = 0; i < BOARD_SIZE; ++i) {
-        cout(i);
-        if ((i + 1) % 8 == 0) std::cout << std::endl;
-    }
 }
 
 Moves moves(const Board& squares, Piece::Color player_color)
