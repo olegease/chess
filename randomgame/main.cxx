@@ -7,7 +7,9 @@ import std.core;
 #include <iostream>
 #include <set>
 #include <map>
-#include <forward_list>
+#include <vector>
+#include <random>
+#include <thread>
 #endif
 
 const auto BOARD_DIMANSION = 8;
@@ -45,14 +47,58 @@ const Piece::Name PN_K = Piece::Name::King;
 
 // aliases
 using Board = std::array< Piece, BOARD_SIZE >;
-using Moves = std::forward_list< Move >;
+using Moves = std::vector< Move >;
 
 // function definitions
 void print_board(Board squares);
 Moves moves(const Board& squares, Piece::Color color);
+void change_player(Piece::Color& current_player);
+void board_make_move(Board& squares, Move move);
+Board board_init();
 
 // MAIN
 int main()
+{
+    //squares[29] = Piece{PC_W, PN_Q};
+    Piece::Color player = Piece::Color::White;
+    std::random_device random_device;
+    std::mt19937_64 random_move_gen(random_device());
+    for (int games = 1; games <= 1; ++games) {
+        Board squares = board_init();
+        int game_moves_count = 0;
+        while (true) {
+            print_board(squares);
+            Moves player_moves = moves(squares, player);
+            if (!player_moves.size()) break;
+            std::uniform_int_distribution<> random_move_destribution(0, player_moves.size() - 1);
+            Move chosen_move = player_moves[random_move_destribution(random_move_gen)];
+            board_make_move(squares, chosen_move);
+            game_moves_count++;
+            if (game_moves_count > 200) break;
+            change_player(player);
+            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        }
+        if ((games % 1000) == 0) std::cout << games << std::endl;
+    }
+}
+
+void change_player(Piece::Color& current_player)
+{
+    current_player = (current_player == Piece::Color::White) ? Piece::Color::Black : Piece::Color::White;
+}
+
+void board_make_move(Board& squares, Move move)
+{
+    Piece &player_piece = squares[move.from];
+    Piece &opponent_piece = squares[move.to];
+    if (opponent_piece.name != Piece::Name::Null && player_piece.color != opponent_piece.color) {
+        opponent_piece.color = Piece::Color::Null;
+        opponent_piece.name = Piece::Name::Null;
+    }
+    std::swap(player_piece, opponent_piece);
+}
+
+Board board_init()
 {
     Board squares;
     std::array< Piece::Name, BOARD_DIMANSION > nopawn_layers{ PN_R, PN_N, PN_B, PN_Q, PN_K, PN_B, PN_N, PN_R };
@@ -68,20 +114,12 @@ int main()
             square_index++;
         }
     }
-    squares[29] = Piece{PC_W, PN_Q};
-    Piece::Color player = Piece::Color::White;
-    print_board(squares);
-    Moves available_moves = moves(squares, player);
-    int moves_size{0};
-    for (auto&move: available_moves) moves_size++;
-    std::cout << moves_size<< std::endl;
-    for (auto& move: available_moves) {
-        std::cout << "from:" << move.from << ", to:" << move.to << std::endl;
-    }
+    return squares;
 }
 
-void print_board(Board squares) {
-    
+void print_board(Board squares)
+{
+    std::cout << "================" << std::endl;
     std::map< Piece::Color, char > color_char{ {PCN, ' '}, {PC_W, '+'}, {PC_B, '-'} };
     std::map< Piece::Name, char > name_char{
             {PNN, ' '}, {PN_B, 'B'}, {PN_K, 'K'},
@@ -104,27 +142,48 @@ Moves moves(const Board& squares, Piece::Color player_color)
         auto piece = squares[index];
         Move move;
         move.from = index;
-        auto push_move = [&move, &moves](){ moves.push_front(move); };
+        auto push_move = [&move, &moves](){ moves.push_back(move); };
         if (piece.color == player_color) {
             switch (piece.name) {
             case Piece::Name::Pawn: {
-                if (index < 56 ) {
-                    move.to = index + BOARD_DIMANSION;
-                    if (squares[move.to].name == PNN) {
-                        push_move();
-                        int doublemove_row = player_color == Piece::Color::White ? 2 : 7;
-                        move.to = index + BOARD_DIMANSION * 2;
-                        if (move.row_from() == doublemove_row && squares[move.to].name == PNN) push_move();
+                if (player_color == Piece::Color::White) {
+                    if (index < 56 ) {
+                        move.to = index + BOARD_DIMANSION;
+                        if (squares[move.to].name == PNN) {
+                            push_move();
+                            int doublemove_row = 2;
+                            move.to = index + BOARD_DIMANSION * 2;
+                            if (move.row_from() == doublemove_row && squares[move.to].name == PNN) push_move();
+                        }
+                        std::array< Move, 2 > side_moves{
+                            Move{move.from, index + BOARD_DIMANSION - 1},
+                            Move{move.from, index + BOARD_DIMANSION + 1}
+                        };
+                        for (auto& side_move : side_moves) {
+                            move.to = side_move.to;
+                            if (move.to < 64 && (move.row_to() - move.row_from() == 1) && squares[move.to].color == oppenent_color) push_move();
+                        }
                     }
-                    std::array< Move, 2 > side_moves{
-                        Move{move.from, index + BOARD_DIMANSION - 1},
-                        Move{move.from, index + BOARD_DIMANSION + 1}
-                    };
-                    for (auto& side_move : side_moves) {
-                        move.to = side_move.to;
-                        if (move.row_to() > move.row_from() && squares[move.to].color == oppenent_color) push_move();
+                } // white pawn
+                else if (player_color == Piece::Color::Black) {
+                    if (index > 7) {
+                        move.to = index - BOARD_DIMANSION;
+                        if (squares[move.to].name == PNN) {
+                            push_move();
+                            int doublemove_row = 7;
+                            move.to = index - BOARD_DIMANSION * 2;
+                            if (move.row_from() == doublemove_row && squares[move.to].name == PNN) push_move();
+                        }
+                        std::array< Move, 2 > side_moves{
+                            Move{move.from, index - BOARD_DIMANSION - 1},
+                            Move{move.from, index - BOARD_DIMANSION + 1}
+                        };
+                        for (auto& side_move : side_moves) {
+                            move.to = side_move.to;
+                            if (move.to > 0 && (move.row_from() - move.row_to() == 1) && squares[move.to].color == oppenent_color) push_move();
+                        }
                     }
-                }
+                } // black pawn
                 break;
             } // pawn
             case Piece::Name::Rock: {
@@ -133,7 +192,7 @@ Moves moves(const Board& squares, Piece::Color player_color)
                 std::array< int, 4 > index_adds{8, -8, 1, -1};
                 for (int i = 0; i < index_adds.size(); ++i) {
                 king_rock_continue:
-                    auto f_inboard = [i, &move](){ return (i % 2) ? (move.to >= 0) : (move.to < 64); };
+                    auto f_inboard = [i, &move](){ return (i % 2) ? (move.to >= 0) : (move.to < BOARD_SIZE); };
                     auto f_correct = [i, &move]() { return (i < 2)
                         ? move.col_to() == move.col_from() 
                         : move.row_to() == move.row_from();
@@ -155,13 +214,14 @@ Moves moves(const Board& squares, Piece::Color player_color)
                         move.to += index_adds[i];
                     }
                 }
+                if (piece.name == Piece::Name::King) goto rock_king;
                 if (piece.name == Piece::Name::Queen) goto rock_queen;
                 break;
             } // Rock
             case Piece::Name::Knight: {
                 std::array< int, 8 > index_adds{-17, -15, -10, -6, 6, 10, 15, 17};
                 for (int i = 0; i < index_adds.size(); ++i) {
-                    auto f_inboard = [i, &move]() { return (i < 4) ? (move.to >= 0) : (move.to < 64); };
+                    auto f_inboard = [i, &move]() { return (i < 4) ? (move.to >= 0) : (move.to < BOARD_SIZE); };
                     auto f_updown = [i, &move]() { return (i < 4)
                         ? (move.row_to() < move.row_from())
                         : (move.row_to() > move.row_from());
@@ -179,12 +239,13 @@ Moves moves(const Board& squares, Piece::Color player_color)
                 break;
             } // kNight
             case Piece::Name::Bishop: {
+                break;
             queen_bishop:
             king_bishop:
                 std::array< int, 4 > index_adds{-9, -7, 7, 9};
                 for (int i = 0; i < index_adds.size(); ++i) {
                 king_bishop_continue:
-                    auto f_inboard = [i, &move]() { return (i < 2) ? (move.to >= 0) : (move.to < 64); };
+                    auto f_inboard = [i, &move]() { return (i < 2) ? (move.to >= 0) : (move.to < BOARD_SIZE); };
                     auto f_updown = [i, &move]() { return (i < 2)
                         ? (move.row_to() < move.row_from())
                         : (move.row_to() > move.row_from());
@@ -210,10 +271,12 @@ Moves moves(const Board& squares, Piece::Color player_color)
                         move.to += index_adds[i];
                     }
                 }
+                if (piece.name == Piece::Name::King) goto bishop_king;
                 if (piece.name == Piece::Name::Queen) goto bishop_queen;
                 break;
             } // Bishop
             case Piece::Name::Queen: {
+            break;
                 goto queen_bishop;
             bishop_queen:
                 goto queen_rock;
@@ -221,6 +284,7 @@ Moves moves(const Board& squares, Piece::Color player_color)
                 break;
             } // Queen
             case Piece::Name::King: {
+            break;
                 goto king_bishop;
             bishop_king:
                 goto king_rock;
