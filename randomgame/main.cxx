@@ -95,13 +95,15 @@ public:
     void rrock_moved() { rrock_moved_[player_] = true; }
 
     Position king() const {
-        for (Position index = 0; Piece piece : board_) {
+        Position index = 0;
+        for (Piece piece : board_) {
             if (piece.name == PN_K && piece.color == player_) return index;
             index++;
         }
+        return BOARD_SIZE;
     }
     void change_player() { player_ = (player_ == PC_W) ? PC_B : PC_W; }
-    int total_moves() { return notation_.size() / 2; }
+    int total_moves() { return static_cast<int>(notation_.size() / 2); }
     Player opponent() const { return (player_ == PC_W) ? PC_B : PC_W; }
     Moves valid_moves() const {
         Moves dirty_moves = ::moves(board_, player_);
