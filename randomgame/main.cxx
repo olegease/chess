@@ -4,6 +4,7 @@
 import std.core;
 #else
 #include <array>
+#include <string>
 #include <iostream>
 #include <set>
 #include <map>
@@ -50,7 +51,7 @@ using Board = std::array< Piece, BOARD_SIZE >;
 using Moves = std::vector< Move >;
 
 // function definitions
-void print_board(Board squares);
+void print_board(const Board& squares);
 Moves moves(const Board& squares, Piece::Color color);
 void change_player(Piece::Color& current_player);
 void board_make_move(Board& squares, Move move);
@@ -59,15 +60,14 @@ Board board_init();
 // MAIN
 int main()
 {
-    //squares[29] = Piece{PC_W, PN_Q};
     Piece::Color player = Piece::Color::White;
     std::random_device random_device;
     std::mt19937_64 random_move_gen(random_device());
-    for (int games = 1; games <= 10000; ++games) {
+    for (int games = 1; games <= 100; ++games) {
         Board squares = board_init();
         int game_moves_count = 0;
         while (true) {
-            //print_board(squares);
+            print_board(squares);
             Moves player_moves = moves(squares, player);
             if (!player_moves.size()) break;
             std::uniform_int_distribution<> random_move_destribution(0, player_moves.size() - 1);
@@ -76,7 +76,7 @@ int main()
             game_moves_count++;
             if (game_moves_count > 200) break;
             change_player(player);
-            //std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         if ((games % 1000) == 0) std::cout << games << std::endl;
     }
@@ -104,7 +104,7 @@ Board board_init()
     std::array< Piece::Name, BOARD_DIMANSION > nopawn_layers{ PN_R, PN_N, PN_B, PN_Q, PN_K, PN_B, PN_N, PN_R };
     std::array< Piece::Name, BOARD_DIMANSION > pawn_layers{ PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P };
     std::array< Piece::Name, BOARD_DIMANSION > null_layers{ PNN, PNN, PNN, PNN, PNN, PNN, PNN, PNN };
-    std::array< Piece::Color, BOARD_DIMANSION > color_layer { PC_W, PC_W, PCN, PCN, PCN, PCN, PC_B, PC_B };
+    std::array< Piece::Color, BOARD_DIMANSION > color_layer { PC_B, PC_B, PCN, PCN, PCN, PCN, PC_W, PC_W };
 
     std::array< std::array< Piece::Name, BOARD_DIMANSION >, BOARD_DIMANSION > name_layers{ nopawn_layers, pawn_layers, null_layers, null_layers, null_layers, null_layers, pawn_layers, nopawn_layers };
     for (int color_layer_i = 0, square_index = 0; color_layer_i < BOARD_DIMANSION; color_layer_i++ ) {
@@ -117,20 +117,40 @@ Board board_init()
     return squares;
 }
 
-void print_board(Board squares)
+//#define UNICODE_CHESS
+void print_board(const Board& squares)
 {
+#ifndef UNICODE_CHESS
     std::cout << "================" << std::endl;
     std::map< Piece::Color, char > color_char{ {PCN, ' '}, {PC_W, '+'}, {PC_B, '-'} };
     std::map< Piece::Name, char > name_char{
-            {PNN, ' '}, {PN_B, 'B'}, {PN_K, 'K'},
-            {PN_N, 'N'}, {PN_P, 'p'}, {PN_Q, 'Q'}, {PN_R, 'R'} };
-
-    std::array< int, BOARD_DIMANSION > lines{56, 48, 40, 32, 24, 16, 8, 0};
-    for (auto line_add : lines) {
-        for (int i = line_add; i < line_add + BOARD_DIMANSION; ++i) {
-            std::cout << color_char[squares[i].color] << name_char[squares[i].name];
+        {PNN, ' '}, {PN_B, 'B'}, {PN_K, 'K'}, {PN_N, 'N'},
+        {PN_P, 'p'}, {PN_Q, 'Q'}, {PN_R, 'R'}
+    };
+    auto cout = [&color_char, &name_char, &squares](int i) {
+        std::cout << color_char[squares[i].color] << name_char[squares[i].name];
+    };
+#else
+    std::map< Piece::Color, std::map< Piece::Name, std::string > > color_name_char{
+        {PCN, {{PNN, "  "}}},
+        {PC_W,  {
+                    {PN_K, " \u2654"}, {PN_Q, " \u2655"}, {PN_R, " \u2656"},
+                    {PN_B, "\u2657"}, {PN_N, "\u2658"}, {PN_P, " \u2659"}
+                }
+        },
+        {PC_B,  {
+                    {PN_K, " \u265A"}, {PN_Q, " \u265B"}, {PN_R, " \u265C"},
+                    {PN_B, "\u265D"}, {PN_N, "\u265E"}, {PN_P, " \u265F"}
+                }
         }
-        std::cout << std::endl;
+    };
+    auto cout = [&color_name_char, &squares](int i) {
+        std::cout << color_name_char[squares[i].color][squares[i].name];
+    };
+#endif
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        cout(i);
+        if ((i + 1) % 8 == 0) std::cout << std::endl;
     }
 }
 
@@ -146,7 +166,7 @@ Moves moves(const Board& squares, Piece::Color player_color)
         if (piece.color == player_color) {
             switch (piece.name) {
             case Piece::Name::Pawn: {
-                if (player_color == Piece::Color::White) {
+                if (player_color == Piece::Color::Black) {
                     if (index < 56 ) {
                         move.to = index + BOARD_DIMANSION;
                         if (squares[move.to].name == PNN) {
@@ -165,7 +185,7 @@ Moves moves(const Board& squares, Piece::Color player_color)
                         }
                     }
                 } // white pawn
-                else if (player_color == Piece::Color::Black) {
+                else if (player_color == Piece::Color::White) {
                     if (index > 7) {
                         move.to = index - BOARD_DIMANSION;
                         if (squares[move.to].name == PNN) {
