@@ -71,7 +71,7 @@ class Game
     std::map< Piece::Color, bool > rrock_moved_{ {PC_W, false}, {PC_B, false} };
     Moves notation_;
     Board board_;
-    std::vector< Piece > promotions;
+    std::vector< Piece > promotions_;
 public:
     Game() : player_(PC_W), board_(board_init()) { }
     Board board() const { return board_; }
@@ -128,17 +128,8 @@ public:
 
     void board_move(Board& board, Move move) const
     {
-        std::random_device random_device;
-        std::mt19937_64 random_generator(random_device());
         Piece &piece_from = board[move.from];
         Piece &piece_to = board[move.to];
-        // promotion checker
-        if (piece_from.name == PN_P) {
-            if (move.row_to() == 1 || move.row_to() == 8) {
-                std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
-                piece_from = { piece_from.color, promotion_variants[promotion_destribution(random_generator)] };
-            }
-        }
         if (piece_to.color == opponent()) piece_to.clear();
         std::swap(piece_from, piece_to);
     }
@@ -154,10 +145,19 @@ public:
         Piece &piece_from = board_[move.from];
         Piece &piece_to = board_[move.to];
         // castling checker
-        if (piece_from.name == PN_K) king_moved();
-        if (piece_from.name == PN_R) {
+        if (piece_to.name == PN_K)
+            king_moved();
+        if (piece_to.name == PN_R) {
             if (move.col_from() == 1) lrock_moved();
             if (move.col_from() == 8) rrock_moved();
+        }
+        // promotion checker
+        if (piece_to.name == PN_P) {
+            if (move.row_to() == 1 || move.row_to() == 8) {
+                std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
+                piece_to = { piece_from.color, promotion_variants[promotion_destribution(random_generator)] };
+                promotions_.push_back(piece_to);
+            }
         }
         
         notation_.push_back(move);
@@ -213,17 +213,17 @@ public:
 // MAIN
 int main()
 {
-    for (int games = 1; games <= 100; ++games) {
+    for (int games = 1; games <= 10000; ++games) {
         Game game{};
-        std::cout << game;
+        //std::cout << game;
         while (true) {
             if (!game.move()) break;
-            std::cout << game;
+            //std::cout << game;
             if (game.total_moves() > 100) break;
             game.change_player();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        if ((games % 1000) == 0) std::cout << games << std::endl;
+        if ((games % 100) == 0) std::cout << games << std::endl;
     }
 }
 
