@@ -114,11 +114,13 @@ public:
         Moves valid_moves;
         for (Move dirty_move : dirty_moves) {
             bool valid = true;
+            // check is this move a king to determine correct king position 
+            Position king_position = (dirty_move.from == king_position_.at(player_)) ? dirty_move.to : king_position_.at(player_);
             Board dirty_board = board();
             board_move(dirty_board, dirty_move);
             Moves check_moves = ::moves(dirty_board, opponent());
             for (Move check_move : check_moves) {
-                if (check_move.to == king_position_.at(player_)) {
+                if (check_move.to == king_position) {
                     valid = false;
                     break;
                 }
@@ -146,6 +148,9 @@ public:
                 player_piece = { player_piece.color, promotion_variants[promotion_destribution(random_generator)] };
                 promotions_.push_back(player_piece);
             }
+        } else if (player_piece.name == PN_K) {
+            // king moved update position
+            king_position_[player_piece.color] = move.to;
         }
 
         return true;
@@ -199,7 +204,7 @@ int main()
 {
     int min_moves = 100;
     Game min_game;
-    for (int games = 1; games <= 100; ++games) {
+    for (int games = 1; games <= 1000; ++games) {
         Game game{};
         //std::cout << game;
         int check_promotion = 1;
@@ -212,11 +217,11 @@ int main()
                 std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             }*/
             //std::cout << game;
-            //if (game.total_moves() > 100) break;
+            if (game.total_moves() > 25) break;
             game.change_player();
         }
-        if ((games % 1) == 0) std::cout << games << std::endl;
-        std::cout << game;
+        if ((games % 100) == 0) std::cout << games << std::endl;
+        if (game.total_moves() < 17) std::cout << game;
         if (min_moves > game.total_moves()) {
             min_moves = game.total_moves();
             min_game = game;
@@ -224,7 +229,7 @@ int main()
     }
     std::cout << "Min game record = " << min_game.total_moves() << std::endl;
     Moves notation = min_game.notation();
-    int halfmoves = notation.size();
+    auto halfmoves = notation.size();
     for (Piece promotion : min_game.promotions()) {
         std::cout << "->" << promotion;
     }
@@ -407,7 +412,6 @@ Moves moves(const Board& squares, Piece::Color player_color)
                 break;
             } // Queen
             case Piece::Name::King: {
-                break;
                 goto king_bishop;
             bishop_king:
                 goto king_rock;
