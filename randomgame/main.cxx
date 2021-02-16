@@ -98,6 +98,16 @@ public:
     int total_moves() const { return static_cast<int>(notation_.size() / 2); }
     Player opponent() const { return (player_ == PC_W) ? PC_B : PC_W; }
     Move last_move() const { return notation_.back(); }
+    
+
+    void board_move(Board& board, Move move) const
+    {
+        Piece &player_piece = board[move.from];
+        Piece &opponent_piece = board[move.to];
+        if (opponent_piece.color != PCN) opponent_piece.clear();
+        std::swap(player_piece, opponent_piece);
+    }
+
     Moves valid_moves() const {
         Moves dirty_moves = ::moves(board_, player_);
         Moves valid_moves;
@@ -115,14 +125,6 @@ public:
             if (valid) valid_moves.push_back(dirty_move);
         }
         return valid_moves;
-    }
-
-    void board_move(Board& board, Move move) const
-    {
-        Piece &player_piece = board[move.from];
-        Piece &opponent_piece = board[move.to];
-        if (opponent_piece.color != PCN) opponent_piece.clear();
-        std::swap(player_piece, opponent_piece);
     }
 
     bool move() {
@@ -196,13 +198,13 @@ int main()
 {
     int min_moves = 100;
     Game min_game;
-    for (int games = 1; games <= 8; ++games) {
+    for (int games = 1; games <= 100; ++games) {
         Game game{};
         //std::cout << game;
         while (true) {
             if (!game.move()) break;
             //std::cout << game;
-            //if (game.total_moves() > 64) break;
+            if (game.total_moves() > 100) break;
             game.change_player();
             //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
@@ -215,11 +217,12 @@ int main()
     }
     std::cout << "Min game record = " << min_game.total_moves() << std::endl;
     Moves notation = min_game.notation();
+    int halfmoves = notation.size();
     for (Piece promotion : min_game.promotions()) {
         std::cout << "->" << promotion;
     }
     std::cout << std::endl;
-    for (int i = 0; i < min_game.total_moves(); ++i) {
+    for (int i = 0; i < halfmoves; ++i) {
         if (i % 2 == 0) std::cout << (i / 2 + 1) << ". ";
         std::cout  << notation[i] << "\t";
         if (i % 2) std::cout << std::endl;
