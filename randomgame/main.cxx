@@ -105,6 +105,7 @@ public:
         Piece &player_piece = board[move.from];
         Piece &opponent_piece = board[move.to];
         if (opponent_piece.color != PCN) opponent_piece.clear();
+
         std::swap(player_piece, opponent_piece);
     }
 
@@ -136,7 +137,7 @@ public:
         Move move = moves[move_destribution(random_generator)];
         board_move(board_, move);
         notation_.push_back(move);
-        Piece player_piece = board_[move.to];
+        Piece &player_piece = board_[move.to];
         
         // promotion checker
         if (player_piece.name == PN_P) {
@@ -201,12 +202,18 @@ int main()
     for (int games = 1; games <= 100; ++games) {
         Game game{};
         //std::cout << game;
+        int check_promotion = 1;
         while (true) {
             if (!game.move()) break;
+            /*if (game.promotions().size() == check_promotion) {
+                check_promotion++;
+                std::cout << "promotion: " << game.board()[game.last_move().to] << std::endl;
+                std::cout << game;
+                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+            }*/
             //std::cout << game;
-            if (game.total_moves() > 100) break;
+            //if (game.total_moves() > 100) break;
             game.change_player();
-            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         if ((games % 1) == 0) std::cout << games << std::endl;
         std::cout << game;
