@@ -36,6 +36,8 @@ struct Piece
 
 
 struct Move {
+    static constexpr std::array< char, 8 > letter{ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'};
+    static constexpr std::array< char, 8 > number{ '8', '7', '6', '5', '4', '3', '2', '1'};
     int from;
     int to;
     static int8_t row(int8_t index) { return (index / BOARD_DIMENSION) + 1; }
@@ -47,8 +49,6 @@ struct Move {
 
     friend std::ostream& operator<<(std::ostream& osm, Move move)
     {
-        std::array< char, 8 > letter{ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'};
-        std::array< char, 8 > number{ '8', '7', '6', '5', '4', '3', '2', '1'};
         osm << letter[move.col_from() - 1LL] << number[move.row_from() - 1LL] << "::"
             << letter[move.col_to() - 1LL] << number[move.row_to() - 1LL];
         return osm;
@@ -72,6 +72,7 @@ using Moves = std::vector< Move >;
 using Pieces = std::vector< Piece >;
 using Player = Piece::Color;
 using Position = int;
+using ColorPosition = std::map< Piece::Color, Position >;
 
 // function definitions
 Moves moves(const Board& squares, Piece::Color color);
@@ -83,43 +84,14 @@ class Game
 {
     static constexpr std::array< Piece::Name, 4 > promotion_variants{ PN_Q, PN_R, PN_B, PN_N };
     Player player_;
-    std::map< Piece::Color, bool > king_moved_{ {PC_W, false}, {PC_B, false} };
-    std::map< Piece::Color, bool > lrock_moved_{ {PC_W, false}, {PC_B, false} };
-    std::map< Piece::Color, bool > rrock_moved_{ {PC_W, false}, {PC_B, false} };
+    ColorPosition king_position_;
     Moves notation_;
     Board board_;
     Pieces promotions_;
 public:
-    Game() : player_(PC_W), board_(board_init()) { }
+    Game() : player_(PC_W), board_(board_init()), king_position_({{PC_W, 60}, {PC_B, 4}}) { }
     Board board() const { return board_; }
-    bool is_king_moved(Player color) { return king_moved_[color]; }
-    bool is_king_moved() { return is_king_moved(player_); }
-
-    void king_moved(Player color) { king_moved_[color] = true; }
-    void king_moved() { king_moved_[player_] = true; }
-
-    bool is_lrock_moved(Player color) { return lrock_moved_[color]; }
-    bool is_lrock_moved() { return lrock_moved_[player_]; }
-
-    void lrock_moved(Player color) { lrock_moved_[color] = true; }
-    void lrock_moved() { lrock_moved_[player_] = true; }
-
-    bool is_rrock_moved(Player color) { return rrock_moved_[color]; }
-    bool is_rrock_moved() { return rrock_moved_[player_]; }
-
-    void rrock_moved(Player color) { rrock_moved_[color] = true; }
-    void rrock_moved() { rrock_moved_[player_] = true; }
-
     Pieces promotions() const { return promotions_; }
-
-    Position king(const Board& board) const {
-        Position index = 0;
-        for (Piece piece : board) {
-            if (piece.name == PN_K && piece.color == player_) return index;
-            index++;
-        }
-        return BOARD_SIZE;
-    }
 
     Moves notation() const { return notation_; }
     void change_player() { player_ = (player_ == PC_W) ? PC_B : PC_W; }
@@ -133,11 +105,9 @@ public:
             bool valid = true;
             Board dirty_board = board();
             board_move(dirty_board, dirty_move);
-            Position king_position = king(dirty_board);
-            if (king_position == BOARD_SIZE) return {};
             Moves check_moves = ::moves(dirty_board, opponent());
             for (Move check_move : check_moves) {
-                if (check_move.to == king_position) {
+                if (check_move.to == king_position_.at(player_)) {
                     valid = false;
                     break;
                 }
@@ -149,10 +119,10 @@ public:
 
     void board_move(Board& board, Move move) const
     {
-        Piece &piece_from = board[move.from];
-        Piece &piece_to = board[move.to];
-        if (piece_to.color == opponent()) piece_to.clear();
-        std::swap(piece_from, piece_to);
+        Piece &player_piece = board[move.from];
+        Piece &opponent_piece = board[move.to];
+        if (opponent_piece.color != PCN) opponent_piece.clear();
+        std::swap(player_piece, opponent_piece);
     }
 
     bool move() {
@@ -163,26 +133,18 @@ public:
         std::uniform_int_distribution<std::size_t> move_destribution(0, moves.size() - 1);
         Move move = moves[move_destribution(random_generator)];
         board_move(board_, move);
-        Piece &piece_from = board_[move.from];
-        Piece &piece_to = board_[move.to];
-        // castling checker
-        if (piece_to.name == PN_K)
-            king_moved();
-        if (piece_to.name == PN_R) {
-            if (move.col_from() == 1) lrock_moved();
-            if (move.col_from() == 8) rrock_moved();
-        }
+        notation_.push_back(move);
+        Piece player_piece = board_[move.to];
+        
         // promotion checker
-        if (piece_to.name == PN_P) {
+        if (player_piece.name == PN_P) {
             if (move.row_to() == 1 || move.row_to() == 8) {
                 std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
-                piece_to = { piece_from.color, promotion_variants[promotion_destribution(random_generator)] };
-                promotions_.push_back(piece_to);
+                player_piece = { player_piece.color, promotion_variants[promotion_destribution(random_generator)] };
+                promotions_.push_back(player_piece);
             }
         }
-        
-        notation_.push_back(move);
-        
+
         return true;
     }
 
@@ -192,9 +154,7 @@ public:
             Move last = game.last_move();
             std::array< char, 8 > letter{ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'};
             std::array< char, 8 > number{ '8', '7', '6', '5', '4', '3', '2', '1'};
-            os << "====="
-                << letter[last.col_from() - 1LL] << number[last.row_from() - 1LL] << "::"
-                << letter[last.col_to() - 1LL] << number[last.row_to() - 1LL] << "====="  << std::endl;
+            os << "=====" << last << "====="  << std::endl;
         }
 #ifndef UNICODE_CHESS
         std::map< Piece::Color, char > color_char{ {PCN, ' '}, {PC_W, '+'}, {PC_B, '-'} };
@@ -236,17 +196,18 @@ int main()
 {
     int min_moves = 100;
     Game min_game;
-    for (int games = 1; games <= 1000; ++games) {
+    for (int games = 1; games <= 8; ++games) {
         Game game{};
         //std::cout << game;
         while (true) {
             if (!game.move()) break;
             //std::cout << game;
-            if (game.total_moves() > 100) break;
+            //if (game.total_moves() > 64) break;
             game.change_player();
             //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        if ((games % 100) == 0) std::cout << games << std::endl;
+        if ((games % 1) == 0) std::cout << games << std::endl;
+        std::cout << game;
         if (min_moves > game.total_moves()) {
             min_moves = game.total_moves();
             min_game = game;
@@ -268,17 +229,6 @@ int main()
 void change_player(Piece::Color& current_player)
 {
     current_player = (current_player == Piece::Color::White) ? Piece::Color::Black : Piece::Color::White;
-}
-
-void board_make_move(Board& squares, Move move)
-{
-    Piece &player_piece = squares[move.from];
-    Piece &opponent_piece = squares[move.to];
-    if (opponent_piece.name != Piece::Name::Null && player_piece.color != opponent_piece.color) {
-        opponent_piece.color = Piece::Color::Null;
-        opponent_piece.name = Piece::Name::Null;
-    }
-    std::swap(player_piece, opponent_piece);
 }
 
 Board board_init()
@@ -447,6 +397,7 @@ Moves moves(const Board& squares, Piece::Color player_color)
                 break;
             } // Queen
             case Piece::Name::King: {
+                break;
                 goto king_bishop;
             bishop_king:
                 goto king_rock;
