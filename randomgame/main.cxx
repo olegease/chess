@@ -1,6 +1,6 @@
 // import/include
 //#define USE_MODULES_CORE
-#if defined(USE_MODULES_CORE)
+#ifdef USE_MODULES_CORE
 import std.core;
 #else
 #include <array>
@@ -74,22 +74,20 @@ using Player = Piece::Color;
 using Position = int;
 using ColorPosition = std::map< Piece::Color, Position >;
 
-// function definitions
-Moves moves(const Board& squares, Piece::Color color);
-void change_player(Piece::Color& current_player);
-void board_make_move(Board& squares, Move move);
-Board board_init();
+class Game;
+Moves f_moves(const Game& game, Player color);
 
 class Game
 {
     static constexpr std::array< Piece::Name, 4 > promotion_variants{ PN_Q, PN_R, PN_B, PN_N };
     Player player_;
     ColorPosition king_position_;
+    Position passant_;
     Moves notation_;
     Board board_;
     Pieces promotions_;
 public:
-    Game() : player_(PC_W), board_(board_init()), king_position_({{PC_W, 60}, {PC_B, 4}}) { }
+    Game() : player_(PC_W), board_(board_init()), king_position_({{PC_W, 60}, {PC_B, 4}}), passant_(BOARD_SIZE) { }
     Board board() const { return board_; }
     Pieces promotions() const { return promotions_; }
 
@@ -98,27 +96,54 @@ public:
     int total_moves() const { return static_cast<int>(notation_.size() / 2); }
     Player opponent() const { return (player_ == PC_W) ? PC_B : PC_W; }
     Move last_move() const { return notation_.back(); }
-    
+    Position passant() const { return passant_; }
+    bool is_passant() const { return passant_ != BOARD_SIZE; }
+
+
+    Board board_init()
+    {
+        Board squares{};
+        std::array< Piece::Name, BOARD_DIMENSION > nopawn_layers{ PN_R, PN_N, PN_B, PN_Q, PN_K, PN_B, PN_N, PN_R };
+        std::array< Piece::Name, BOARD_DIMENSION > pawn_layers{ PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P };
+        std::array< Piece::Name, BOARD_DIMENSION > null_layers{ PNN, PNN, PNN, PNN, PNN, PNN, PNN, PNN };
+        std::array< Piece::Color, BOARD_DIMENSION > color_layer { PC_B, PC_B, PCN, PCN, PCN, PCN, PC_W, PC_W };
+
+        std::array< std::array< Piece::Name, BOARD_DIMENSION >, BOARD_DIMENSION > name_layers{ nopawn_layers, pawn_layers, null_layers, null_layers, null_layers, null_layers, pawn_layers, nopawn_layers };
+        for (int color_layer_i = 0, square_index = 0; color_layer_i < BOARD_DIMENSION; color_layer_i++ ) {
+            std::array< Piece::Name, BOARD_DIMENSION > name_layer = name_layers[color_layer_i];
+            for (int name_layer_i = 0; name_layer_i < BOARD_DIMENSION; name_layer_i++) {
+                squares[square_index] = Piece{color_layer[color_layer_i], name_layer[name_layer_i]};
+                square_index++;
+            }
+        }
+        return squares;
+    }
 
     void board_move(Board& board, Move move) const
     {
+        bool take_passant = false;
         Piece &player_piece = board[move.from];
         Piece &opponent_piece = board[move.to];
+        if (board[move.from].name == PN_P && move.to == passant_) {
+            take_passant = true;
+            std::cout << *this;
+        }
         if (opponent_piece.color != PCN) opponent_piece.clear();
-
+        else if (take_passant) board[passant_ + 8LL * dir()].clear();
         std::swap(player_piece, opponent_piece);
+        if (take_passant) std::cout << *this;
     }
 
     Moves valid_moves() const {
-        Moves dirty_moves = ::moves(board_, player_);
         Moves valid_moves;
+        Moves dirty_moves = f_moves(*this, player_);
         for (Move dirty_move : dirty_moves) {
             bool valid = true;
             // check is this move a king to determine correct king position 
             Position king_position = (dirty_move.from == king_position_.at(player_)) ? dirty_move.to : king_position_.at(player_);
-            Board dirty_board = board();
-            board_move(dirty_board, dirty_move);
-            Moves check_moves = ::moves(dirty_board, opponent());
+            Game dirty_game = *this;
+            board_move(dirty_game.board_, dirty_move);
+            Moves check_moves = f_moves(dirty_game, opponent());
             for (Move check_move : check_moves) {
                 if (check_move.to == king_position) {
                     valid = false;
@@ -127,6 +152,7 @@ public:
             }
             if (valid) valid_moves.push_back(dirty_move);
         }
+
         return valid_moves;
     }
 
@@ -139,16 +165,23 @@ public:
         Move move = moves[move_destribution(random_generator)];
         board_move(board_, move);
         notation_.push_back(move);
+        // 
         Piece &player_piece = board_[move.to];
-        
-        // promotion checker
+        passant_ = BOARD_SIZE;
         if (player_piece.name == PN_P) {
+            // promotion checker
             if (move.row_to() == 1 || move.row_to() == 8) {
                 std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
                 player_piece = { player_piece.color, promotion_variants[promotion_destribution(random_generator)] };
                 promotions_.push_back(player_piece);
+            // en passant checker
+            } else if (move.row_from() == 7 || move.row_from() == 2) {
+                if (move.row_to() == 5 || move.row_to() == 4) {
+                    passant_ = move.to + 8 * dir();
+                }
             }
-        } else if (player_piece.name == PN_K) {
+        }
+        else if (player_piece.name == PN_K) {
             // king moved update position
             king_position_[player_piece.color] = move.to;
         }
@@ -156,6 +189,8 @@ public:
         return true;
     }
 
+    int dir(Player player) const { return player == PC_W ? 1 : -1; }  
+    int dir() const { return dir(player_); }
     friend std::ostream& operator<<(std::ostream& os, const Game& game)
     {
         if (game.total_moves() > 0) {
@@ -204,7 +239,7 @@ int main()
 {
     int min_moves = 100;
     Game min_game;
-    for (int games = 1; games <= 1000; ++games) {
+    for (int games = 1; games <= 64; ++games) {
         Game game{};
         //std::cout << game;
         int check_promotion = 1;
@@ -217,11 +252,11 @@ int main()
                 std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             }*/
             //std::cout << game;
-            if (game.total_moves() > 25) break;
+            if (game.total_moves() > 100) break;
             game.change_player();
         }
         if ((games % 100) == 0) std::cout << games << std::endl;
-        if (game.total_moves() < 17) std::cout << game;
+        //if (game.total_moves() < 17) std::cout << game;
         if (min_moves > game.total_moves()) {
             min_moves = game.total_moves();
             min_game = game;
@@ -246,27 +281,9 @@ void change_player(Piece::Color& current_player)
     current_player = (current_player == Piece::Color::White) ? Piece::Color::Black : Piece::Color::White;
 }
 
-Board board_init()
+Moves f_moves(const Game& game, Player player_color)
 {
-    Board squares{};
-    std::array< Piece::Name, BOARD_DIMENSION > nopawn_layers{ PN_R, PN_N, PN_B, PN_Q, PN_K, PN_B, PN_N, PN_R };
-    std::array< Piece::Name, BOARD_DIMENSION > pawn_layers{ PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P, PN_P };
-    std::array< Piece::Name, BOARD_DIMENSION > null_layers{ PNN, PNN, PNN, PNN, PNN, PNN, PNN, PNN };
-    std::array< Piece::Color, BOARD_DIMENSION > color_layer { PC_B, PC_B, PCN, PCN, PCN, PCN, PC_W, PC_W };
-
-    std::array< std::array< Piece::Name, BOARD_DIMENSION >, BOARD_DIMENSION > name_layers{ nopawn_layers, pawn_layers, null_layers, null_layers, null_layers, null_layers, pawn_layers, nopawn_layers };
-    for (int color_layer_i = 0, square_index = 0; color_layer_i < BOARD_DIMENSION; color_layer_i++ ) {
-        std::array< Piece::Name, BOARD_DIMENSION > name_layer = name_layers[color_layer_i];
-        for (int name_layer_i = 0; name_layer_i < BOARD_DIMENSION; name_layer_i++) {
-            squares[square_index] = Piece{color_layer[color_layer_i], name_layer[name_layer_i]};
-            square_index++;
-        }
-    }
-    return squares;
-}
-
-Moves moves(const Board& squares, Piece::Color player_color)
-{
+    const Board squares = game.board();
     Moves moves;
     Piece::Color opponent_color = player_color == Piece::Color::White ? Piece::Color::Black : Piece::Color::White; 
     for(int index = 0, index_current = 0; index < squares.size(); index++) {
@@ -285,14 +302,18 @@ Moves moves(const Board& squares, Piece::Color player_color)
                             move.to = index + BOARD_DIMENSION * 2;
                             if (move.row_from() == doublemove_row && squares[move.to].name == PNN) push_move();
                         }
+
                         std::array< Move, 2 > side_moves{
                             Move{move.from, index + BOARD_DIMENSION - 1},
                             Move{move.from, index + BOARD_DIMENSION + 1}
                         };
+
                         for (auto& side_move : side_moves) {
                             move.to = side_move.to;
-                            if (move.to < 64 && (move.row_to() - move.row_from() == 1) && squares[move.to].color == opponent_color) push_move();
+                            if (move.to < 64 && (move.row_to() - move.row_from() == 1))
+                                if (squares[move.to].color == opponent_color || move.to == game.passant()) push_move();
                         }
+
                     }
                 } // white pawn
                 else if (player_color == Piece::Color::White) {
@@ -310,7 +331,8 @@ Moves moves(const Board& squares, Piece::Color player_color)
                         };
                         for (auto& side_move : side_moves) {
                             move.to = side_move.to;
-                            if (move.to > 0 && (move.row_from() - move.row_to() == 1) && squares[move.to].color == opponent_color) push_move();
+                            if (move.to >= 0 && (move.row_from() - move.row_to() == 1))
+                                if (squares[move.to].color == opponent_color && move.to == game.passant()) push_move();
                         }
                     }
                 } // black pawn
