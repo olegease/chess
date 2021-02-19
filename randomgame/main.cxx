@@ -25,7 +25,7 @@ struct Piece
     Color color;
     Name name;
     void clear() { color = Color::Null; name = Name::Null; }
-
+    bool empty() const { return name == Piece::Name::Null; }
     friend std::ostream& operator<<(std::ostream& os, Piece piece)
     {
         os << Titles[static_cast<int>(piece.name)];
@@ -73,6 +73,7 @@ using Pieces = std::vector< Piece >;
 using Player = Piece::Color;
 using Position = int;
 using ColorPosition = std::map< Piece::Color, Position >;
+using ColorBool = std::map< Piece::Color, bool >;
 
 class Game;
 Moves f_moves(const Game& game, Player color);
@@ -83,6 +84,8 @@ class Game
     Player player_;
     ColorPosition king_position_;
     Position passant_;
+    ColorBool kside_castling_;
+    ColorBool qside_castling_;
     int fiftymove_rule_;
     Moves notation_;
     Board board_;
@@ -93,6 +96,8 @@ public:
         board_(board_init()),
         king_position_({{PC_W, 60}, {PC_B, 4}}),
         passant_(BOARD_SIZE),
+        kside_castling_({{PC_W, true}, {PC_B, true}}),
+        qside_castling_({{PC_W, true}, {PC_B, true}}),
         fiftymove_rule_(0)
     { }
     Board board() const { return board_; }
@@ -106,6 +111,8 @@ public:
     Position passant() const { return passant_; }
     bool is_passant() const { return passant_ != BOARD_SIZE; }
     bool is_fiftymove_rule() const { return fiftymove_rule_ >= 100; }
+    bool is_qside_castling(Player player) const { return qside_castling_.at(player); }
+    bool is_kside_castling(Player player) const { return qside_castling_.at(player); }
 
     Board board_init()
     {
@@ -132,7 +139,13 @@ public:
         Piece &opponent_piece = board[move.to];
 
         if (opponent_piece.color != PCN) opponent_piece.clear();
-        else if (board[move.from].name == PN_P && move.to == passant_) board[passant_ + 8LL * dir()].clear();
+        else if (player_piece.name == PN_P && move.to == passant_) board[passant_ + 8LL * dir()].clear();
+        else if (player_piece.name == PN_K) {
+            if (int diff = move.to - move.from; std::abs(diff) == 2) {
+                if (diff > 0) std::swap(board[move.to - 1LL], board[move.to + 1LL]);
+                else std::swap(board[move.to + 1LL], board[move.to - 2LL]);
+            }
+        }
         std::swap(player_piece, opponent_piece);
     }
 
@@ -166,7 +179,14 @@ public:
         fiftymove_rule_++;
         std::uniform_int_distribution<std::size_t> move_destribution(0, moves.size() - 1);
         Move move = moves[move_destribution(random_generator)];
-        if (board_[move.to].name != PNN) fiftymove_rule_ = 0;
+        if (board_[move.to].name != PNN) {
+            fiftymove_rule_ = 0;
+        }
+        else if (board_[move.to].name == PN_R) {
+            Player opp = opponent();
+            if (move.col_to() == 1) qside_castling_[opp] = false;
+            else if (move.col_to() == 8) kside_castling_[opp] = false;
+        }
         board_move(board_, move);
         notation_.push_back(move);
         // 
@@ -189,6 +209,8 @@ public:
         else if (player_piece.name == PN_K) {
             // king moved update position
             king_position_[player_piece.color] = move.to;
+            kside_castling_[player_piece.color] = false;
+            qside_castling_[player_piece.color] = false;
         }
         if (is_fiftymove_rule()) return false;
         return true;
@@ -242,7 +264,7 @@ public:
 // MAIN
 int main()
 {
-    int max_games = 1000;
+    int max_games = 8;
     for (int games = 1; games <= max_games; ++games) {
         Game game{};
         while (true) {
@@ -253,11 +275,6 @@ int main()
         if (!game.is_fiftymove_rule())
             std::cout << "===Moves: " << game.total_moves() << ", last move: " << game.notation().back() << std::endl << game;
     }
-}
-
-void change_player(Piece::Color& current_player)
-{
-    current_player = (current_player == Piece::Color::White) ? Piece::Color::Black : Piece::Color::White;
 }
 
 Moves f_moves(const Game& game, Player player_color)
@@ -413,6 +430,18 @@ Moves f_moves(const Game& game, Player player_color)
                 break;
             } // Queen
             case Piece::Name::King: {
+                if (game.is_kside_castling(player_color)) {
+                    if (squares[move.from + 1LL].empty() && squares[move.from + 2LL].empty()) {
+                        move.to = move.from + 2;
+                        push_move();
+                    }
+                }
+                if (game.is_qside_castling(player_color)) {
+                    if (squares[move.from - 1LL].empty() && squares[move.from - 2LL].empty() && squares[move.from - 3LL].empty()) {
+                        move.to = move.from - 2;
+                        push_move();
+                    }
+                }
                 goto king_bishop;
             bishop_king:
                 goto king_rock;
