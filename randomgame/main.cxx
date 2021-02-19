@@ -368,7 +368,7 @@ Moves f_moves(const Game& game, Player player_color)
                         for (auto& side_move : side_moves) {
                             move.to = side_move.to;
                             if (move.to >= 0 && (move.row_from() - move.row_to() == 1))
-                                if (squares[move.to].color == opponent_color && move.to == game.passant()) push_move();
+                                if (squares[move.to].color == opponent_color || move.to == game.passant()) push_move();
                         }
                     }
                 } // black pawn
