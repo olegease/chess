@@ -83,11 +83,18 @@ class Game
     Player player_;
     ColorPosition king_position_;
     Position passant_;
+    int fiftymove_rule_;
     Moves notation_;
     Board board_;
     Pieces promotions_;
 public:
-    Game() : player_(PC_W), board_(board_init()), king_position_({{PC_W, 60}, {PC_B, 4}}), passant_(BOARD_SIZE) { }
+    Game() :
+        player_(PC_W),
+        board_(board_init()),
+        king_position_({{PC_W, 60}, {PC_B, 4}}),
+        passant_(BOARD_SIZE),
+        fiftymove_rule_(0)
+    { }
     Board board() const { return board_; }
     Pieces promotions() const { return promotions_; }
 
@@ -98,7 +105,7 @@ public:
     Move last_move() const { return notation_.back(); }
     Position passant() const { return passant_; }
     bool is_passant() const { return passant_ != BOARD_SIZE; }
-
+    bool is_fiftymove_rule() const { return fiftymove_rule_ >= 100; }
 
     Board board_init()
     {
@@ -121,17 +128,12 @@ public:
 
     void board_move(Board& board, Move move) const
     {
-        bool take_passant = false;
         Piece &player_piece = board[move.from];
         Piece &opponent_piece = board[move.to];
-        if (board[move.from].name == PN_P && move.to == passant_) {
-            take_passant = true;
-            std::cout << *this;
-        }
+
         if (opponent_piece.color != PCN) opponent_piece.clear();
-        else if (take_passant) board[passant_ + 8LL * dir()].clear();
+        else if (board[move.from].name == PN_P && move.to == passant_) board[passant_ + 8LL * dir()].clear();
         std::swap(player_piece, opponent_piece);
-        if (take_passant) std::cout << *this;
     }
 
     Moves valid_moves() const {
@@ -161,14 +163,17 @@ public:
         std::mt19937_64 random_generator(random_device());
         Moves moves = valid_moves();
         if (moves.empty()) return false;
+        fiftymove_rule_++;
         std::uniform_int_distribution<std::size_t> move_destribution(0, moves.size() - 1);
         Move move = moves[move_destribution(random_generator)];
+        if (board_[move.to].name != PNN) fiftymove_rule_ = 0;
         board_move(board_, move);
         notation_.push_back(move);
         // 
         Piece &player_piece = board_[move.to];
         passant_ = BOARD_SIZE;
         if (player_piece.name == PN_P) {
+            fiftymove_rule_ = 0;
             // promotion checker
             if (move.row_to() == 1 || move.row_to() == 8) {
                 std::uniform_int_distribution<std::size_t> promotion_destribution(0, promotion_variants.size() - 1);
@@ -185,7 +190,7 @@ public:
             // king moved update position
             king_position_[player_piece.color] = move.to;
         }
-
+        if (is_fiftymove_rule()) return false;
         return true;
     }
 
@@ -237,42 +242,16 @@ public:
 // MAIN
 int main()
 {
-    int min_moves = 100;
-    Game min_game;
-    for (int games = 1; games <= 64; ++games) {
+    int max_games = 1000;
+    for (int games = 1; games <= max_games; ++games) {
         Game game{};
-        //std::cout << game;
-        int check_promotion = 1;
         while (true) {
             if (!game.move()) break;
-            /*if (game.promotions().size() == check_promotion) {
-                check_promotion++;
-                std::cout << "promotion: " << game.board()[game.last_move().to] << std::endl;
-                std::cout << game;
-                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-            }*/
-            //std::cout << game;
-            if (game.total_moves() > 100) break;
             game.change_player();
         }
-        if ((games % 100) == 0) std::cout << games << std::endl;
-        //if (game.total_moves() < 17) std::cout << game;
-        if (min_moves > game.total_moves()) {
-            min_moves = game.total_moves();
-            min_game = game;
-        }
-    }
-    std::cout << "Min game record = " << min_game.total_moves() << std::endl;
-    Moves notation = min_game.notation();
-    auto halfmoves = notation.size();
-    for (Piece promotion : min_game.promotions()) {
-        std::cout << "->" << promotion;
-    }
-    std::cout << std::endl;
-    for (int i = 0; i < halfmoves; ++i) {
-        if (i % 2 == 0) std::cout << (i / 2 + 1) << ". ";
-        std::cout  << notation[i] << "\t";
-        if (i % 2) std::cout << std::endl;
+        if (games % 64 == 0) std::cout << games << std::endl;
+        if (!game.is_fiftymove_rule())
+            std::cout << "===Moves: " << game.total_moves() << ", last move: " << game.notation().back() << std::endl << game;
     }
 }
 
