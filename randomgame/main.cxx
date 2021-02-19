@@ -228,6 +228,10 @@ public:
             kside_castling_[player_piece.color] = false;
             qside_castling_[player_piece.color] = false;
         }
+        else if (player_piece.name == PN_R) {
+            if (move.col_from() == 1) qside_castling_[player_piece.color] = false;
+            else if (move.col_from() == 8) kside_castling_[player_piece.color] = false;
+        }
         if (is_fiftymove_rule()) return false;
         return true;
     }
