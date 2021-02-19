@@ -91,7 +91,9 @@ class Game
     Board board_;
     Pieces promotions_;
 public:
+    bool is_castling_happened;
     Game() :
+        is_castling_happened(false),
         player_(PC_W),
         board_(board_init()),
         king_position_({{PC_W, 60}, {PC_B, 4}}),
@@ -152,15 +154,28 @@ public:
     Moves valid_moves() const {
         Moves valid_moves;
         Moves dirty_moves = f_moves(*this, player_);
+        
         for (Move dirty_move : dirty_moves) {
+            Position king_position = king_position_.at(player_);
+            std::set< Position > invalidated_positions;
             bool valid = true;
-            // check is this move a king to determine correct king position 
-            Position king_position = (dirty_move.from == king_position_.at(player_)) ? dirty_move.to : king_position_.at(player_);
+            // check is this move a king to determine correct king position
+            if (dirty_move.from == king_position) {
+                king_position = dirty_move.to;
+                // castling
+                if (int diff = dirty_move.to - dirty_move.from;  std::abs(diff) == 2) {
+                    invalidated_positions.insert(dirty_move.from);
+                    invalidated_positions.insert(dirty_move.from + diff - 1);
+                    // q side castling additional possible invalidated position
+                    if (diff < 0) invalidated_positions.insert(dirty_move.from + diff + 1);
+                }
+            }
+            invalidated_positions.insert(king_position);
             Game dirty_game = *this;
             board_move(dirty_game.board_, dirty_move);
             Moves check_moves = f_moves(dirty_game, opponent());
             for (Move check_move : check_moves) {
-                if (check_move.to == king_position) {
+                if (invalidated_positions.count(check_move.to)) {
                     valid = false;
                     break;
                 }
@@ -187,6 +202,7 @@ public:
             if (move.col_to() == 1) qside_castling_[opp] = false;
             else if (move.col_to() == 8) kside_castling_[opp] = false;
         }
+        else if (board_[move.from].name == PN_K && std::abs(move.from - move.to) == 2) is_castling_happened = true;
         board_move(board_, move);
         notation_.push_back(move);
         // 
@@ -264,16 +280,36 @@ public:
 // MAIN
 int main()
 {
-    int max_games = 8;
+    int max_games = 64;
+    Game min_game;
+    int min_game_moves = 1000;
     for (int games = 1; games <= max_games; ++games) {
         Game game{};
         while (true) {
             if (!game.move()) break;
             game.change_player();
         }
+        if (game.is_castling_happened && min_game_moves > game.total_moves()) {
+            min_game_moves = game.total_moves();
+            min_game = game;
+        }
         if (games % 64 == 0) std::cout << games << std::endl;
-        if (!game.is_fiftymove_rule())
-            std::cout << "===Moves: " << game.total_moves() << ", last move: " << game.notation().back() << std::endl << game;
+        //if (!game.is_fiftymove_rule())
+        if (game.is_castling_happened)
+            std::cout << "===Moves: " << game.total_moves() << "===" << std::endl << game;
+    }
+
+    std::cout << "Min game with castling happened record = " << min_game.total_moves() << std::endl;
+    Moves notation = min_game.notation();
+    auto halfmoves = notation.size();
+    for (Piece promotion : min_game.promotions()) {
+        std::cout << "->" << promotion;
+    }
+    std::cout << std::endl;
+    for (int i = 0; i < halfmoves; ++i) {
+        if (i % 2 == 0) std::cout << (i / 2 + 1) << ". ";
+        std::cout  << notation[i] << "\t";
+        if (i % 2) std::cout << std::endl;
     }
 }
 
