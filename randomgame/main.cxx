@@ -165,9 +165,8 @@ public:
                 // castling
                 if (int diff = dirty_move.to - dirty_move.from;  std::abs(diff) == 2) {
                     invalidated_positions.insert(dirty_move.from);
-                    invalidated_positions.insert(dirty_move.from + diff - 1);
-                    // q side castling additional possible invalidated position
                     if (diff < 0) invalidated_positions.insert(dirty_move.from + diff + 1);
+                    else invalidated_positions.insert(dirty_move.from + diff - 1);
                 }
             }
             invalidated_positions.insert(king_position);
@@ -280,6 +279,25 @@ public:
         return os;
     }
 };
+
+std::vector< std::string_view > parse_fen(std::string_view fenstr)
+{
+    std::vector< size_t > indexes;
+    std::vector< std::string_view > chunks;
+    size_t off = 0;
+    while ((off = fenstr.find_first_of("/ ", off + 1LL)) != std::string::npos) {
+        indexes.push_back(off);
+    }
+    indexes.push_back(fenstr.size());
+    size_t prev = 0;
+    for (size_t index : indexes) {
+        chunks.push_back(fenstr.substr(prev, index - prev));
+        prev = index + 1;
+    }
+    for (std::string_view chunk : chunks) std::cout << chunk << std::endl;
+    return chunks;
+}
+
 
 // MAIN
 int main()
