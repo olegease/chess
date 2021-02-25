@@ -252,8 +252,8 @@ public:
     }
 
     bool move() {
-        std::random_device random_device;
-        std::mt19937_64 random_generator(random_device());
+        static std::random_device random_device;
+        static std::mt19937_64 random_generator(random_device());
         Moves moves = valid_moves();
         if (moves.empty()) return false;
         fiftymove_rule_++;
