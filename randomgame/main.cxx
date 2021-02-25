@@ -11,6 +11,7 @@ import std.core;
 #include <vector>
 #include <random>
 #include <thread>
+#include <cctype>
 #endif
 
 const auto BOARD_DIMENSION = 8;
@@ -30,6 +31,24 @@ struct Piece
     {
         os << Titles[static_cast<int>(piece.name)];
         return os;
+    }
+    static Color color_from(char ch)
+    {
+        if (std::isupper(ch)) return Color::White;
+        else return Color::Black;
+    }
+    static Name name_from(char ch)
+    {
+        switch (std::toupper(ch)) {
+        case 'P': return Name::Pawn;
+        case 'B': return Name::Bishop;
+        case 'N': return Name::Knight;
+        case 'R': return Name::Rock;
+        case 'Q': return Name::Queen;
+        case 'K': return Name::King;
+        default: break;
+        }
+        return Name::Pawn;
     }
 };
 
@@ -54,6 +73,10 @@ struct Move {
         return osm;
     }
 };
+
+int index_from(std::string_view location);
+std::vector< std::string_view > parse_fen(std::string_view fenstr);
+
 // constansts
 const Piece::Color PCN = Piece::Color::Null; 
 const Piece::Color PC_W = Piece::Color::White;
@@ -102,6 +125,48 @@ public:
         qside_castling_({{PC_W, true}, {PC_B, true}}),
         fiftymove_rule_(0)
     { }
+    Game(std::string_view fenstr)
+    {
+        std::vector< std::string_view > fenvec = parse_fen(fenstr);
+        int index = 0;
+        for (int iv = 0; iv < 8; ++iv) {
+            for (int is = 0; is < fenvec[iv].size(); ++is) {
+                char ch = fenvec[iv][is];
+                if (isdigit(ch)) {
+                    int value = ch - '0';
+                    while (value--) {
+                        board_[index++] = Piece{ PCN, PNN };
+                    }
+                }
+                else {
+                    board_[index++] = Piece{ Piece::color_from(ch), Piece::name_from(ch) };
+                }
+            }
+        }
+        player_ = (fenvec[8] == "w") ? Piece::Color::White : Piece::Color::Black;
+        if (fenvec[9] == "-") {
+            kside_castling_[PC_W] = false;
+            kside_castling_[PC_B] = false;
+            qside_castling_[PC_W] = false;
+            qside_castling_[PC_B] = false;
+        }
+        else {
+            for (auto size = fenvec[9].size(), castling_i = 0ULL; castling_i < size; ++castling_i) {
+                switch (std::toupper(fenvec[9][castling_i])) {
+                    case 'K': kside_castling_[Piece::color_from(fenvec[9][castling_i])] = true; break;
+                    case 'Q': qside_castling_[Piece::color_from(fenvec[9][castling_i])] = true; break;
+                }
+            }
+        }
+        if (fenvec[10] == "-") {
+            passant_ = BOARD_SIZE;
+        }
+        else {
+            passant_ = index_from(fenvec[10]);
+        }
+
+        fiftymove_rule_ = std::stoi(fenvec[11].data());
+    }
     Board board() const { return board_; }
     Pieces promotions() const { return promotions_; }
 
@@ -301,37 +366,13 @@ std::vector< std::string_view > parse_fen(std::string_view fenstr)
 
 // MAIN
 int main()
-{
-    int max_games = 64;
-    Game min_game;
-    int min_game_moves = 1000;
-    for (int games = 1; games <= max_games; ++games) {
-        Game game{};
-        while (true) {
-            if (!game.move()) break;
-            game.change_player();
-        }
-        if (game.is_castling_happened && min_game_moves > game.total_moves()) {
-            min_game_moves = game.total_moves();
-            min_game = game;
-        }
-        if (games % 64 == 0) std::cout << games << std::endl;
-        //if (!game.is_fiftymove_rule())
-        if (game.is_castling_happened)
-            std::cout << "===Moves: " << game.total_moves() << "===" << std::endl << game;
-    }
-
-    std::cout << "Min game with castling happened record = " << min_game.total_moves() << std::endl;
-    Moves notation = min_game.notation();
-    auto halfmoves = notation.size();
-    for (Piece promotion : min_game.promotions()) {
-        std::cout << "->" << promotion;
-    }
-    std::cout << std::endl;
-    for (int i = 0; i < halfmoves; ++i) {
-        if (i % 2 == 0) std::cout << (i / 2 + 1) << ". ";
-        std::cout  << notation[i] << "\t";
-        if (i % 2) std::cout << std::endl;
+{    
+    Game game{};
+    while (true) {
+        std::cout << game << std::endl;
+        if (!game.move()) break;
+        game.change_player();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
 }
 
@@ -510,4 +551,9 @@ Moves f_moves(const Game& game, Player player_color)
         } // piece color checker
     } // index cycle
     return moves;
+}
+
+int index_from(std::string_view location)
+{
+    return BOARD_DIMENSION * (9 - (location[1] - '0')) + (location[0] - 'a' + 1);
 }
