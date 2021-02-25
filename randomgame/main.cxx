@@ -114,9 +114,7 @@ class Game
     Board board_;
     Pieces promotions_;
 public:
-    bool is_castling_happened;
     Game() :
-        is_castling_happened(false),
         player_(PC_W),
         board_(board_init()),
         king_position_({{PC_W, 60}, {PC_B, 4}}),
@@ -132,13 +130,16 @@ public:
         for (int iv = 0; iv < 8; ++iv) {
             for (int is = 0; is < fenvec[iv].size(); ++is) {
                 char ch = fenvec[iv][is];
-                if (isdigit(ch)) {
+                if (std::isdigit(ch)) {
                     int value = ch - '0';
                     while (value--) {
                         board_[index++] = Piece{ PCN, PNN };
                     }
                 }
                 else {
+                    if (std::toupper(ch) == 'K') {
+                        king_position_[Piece::color_from(ch)] = index;
+                    }
                     board_[index++] = Piece{ Piece::color_from(ch), Piece::name_from(ch) };
                 }
             }
@@ -266,7 +267,6 @@ public:
             if (move.col_to() == 1) qside_castling_[opp] = false;
             else if (move.col_to() == 8) kside_castling_[opp] = false;
         }
-        else if (board_[move.from].name == PN_K && std::abs(move.from - move.to) == 2) is_castling_happened = true;
         board_move(board_, move);
         notation_.push_back(move);
         // 
