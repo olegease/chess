@@ -10,6 +10,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libchessgame", "libchessgame\libchessgame.vcxproj", "{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -26,6 +28,14 @@ Global
 		{B8483673-8566-4755-9B7D-9DD4A6785B21}.Release|x64.Build.0 = Release|x64
 		{B8483673-8566-4755-9B7D-9DD4A6785B21}.Release|x86.ActiveCfg = Release|Win32
 		{B8483673-8566-4755-9B7D-9DD4A6785B21}.Release|x86.Build.0 = Release|Win32
+		{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}.Debug|x64.ActiveCfg = Debug|x64
+		{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}.Debug|x64.Build.0 = Debug|x64
+		{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}.Debug|x86.ActiveCfg = Debug|Win32
+		{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}.Debug|x86.Build.0 = Debug|Win32
+		{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}.Release|x64.ActiveCfg = Release|x64
+		{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}.Release|x64.Build.0 = Release|x64
+		{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}.Release|x86.ActiveCfg = Release|Win32
+		{5324E09D-CB86-4D34-AFC9-A8B7A4EC3F08}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
