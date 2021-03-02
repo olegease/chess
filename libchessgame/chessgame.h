@@ -1,12 +1,9 @@
 #pragma once
 
-#ifdef __cplusplus_
-namespace ease::chessgame::c { extern "C" {
-#define ease_chessgame_Location Location
-#define ease_chessgame_Color Color
-#define ease_chessgame_Game Game
+#ifdef __cplusplus
+extern "C" {
 #endif
-enum ease_chessgame_Location {
+typedef enum ease_chessgame_Location {
     a8, b8, c8, d8, e8, f8, g8, h8,
     a7, b7, c7, d7, e7, f7, g7, h7,
     a6, b6, c6, d6, e6, f6, g6, h6,
@@ -15,34 +12,39 @@ enum ease_chessgame_Location {
     a3, b3, c3, d3, e3, f3, g3, h3,
     a2, b2, c2, d2, e2, f2, g2, h2,
     a1, b1, c1, d1, e1, f1, g1, h1
-};
+} ease_chessgame_Location;
 
-enum ease_chessgame_Color {
+typedef enum ease_chessgame_Color {
     Black, White
-};
+} ease_chessgame_Color;
 
-enum ease_chessgame_Piece {
+typedef enum ease_chessgame_Piece {
     Null,
     WhitePawn, WhiteKnight, WhiteBishop, WhiteRock, WhiteQueen, WhiteKing,
     BlackPawn, BlackKnight, BlackBishop, BlackRock, BlackQueen, BlackKing
-};
+} ease_chessgame_Piece;
 
-struct ease_chessgame_Fen {
+typedef struct ease_chessgame_Fen {
     ease_chessgame_Piece board[64];
     ease_chessgame_Color player;
-    bool kcastling[2];
-    bool qcastling[2];
-    int enpassant;
+    _Bool kcastling[2];
+    _Bool qcastling[2];
+    ease_chessgame_Location enpassant;
     int halfclock;
     int fullmoves;
-};
+} ease_chessgame_Fen;
+
+typedef struct ease_chessgame_Move {
+    ease_chessgame_Location from;
+    ease_chessgame_Location to;
+} ease_chessgame_Move;
 
 //void ease_chessgame_register();
 //void ease_chessgame_unregister();
 //void ease_chessgame_dirty_moves();
 //void ease_chessgame_valid_moves();
 //void ease_chasegame_move();
-void ease_chessgame_parse_fen(const char* fenstr);
-#ifdef __cplusplus_
-}} // namespace ease::chess::c { extern "C" {
+ease_chessgame_Fen ease_chessgame_parse_fen(const char* fenstr);
+#ifdef __cplusplus
+} // namespace ease::chess::c { extern "C" {
 #endif
