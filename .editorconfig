@@ -3,7 +3,7 @@
 # You can learn more about editorconfig here: https://docs.microsoft.com/en-us/visualstudio/ide/editorconfig-code-style-settings-reference
 root = true
 
-[*.{cxx,ixx,hxx,h,c}]
+[*.{cxx,ixx,hxx,h,c,cpp}]
 indent_style = space
 indent_size = 4
 tab_width = 4

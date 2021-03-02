@@ -1,42 +1,35 @@
 #pragma once
-
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
+#include <stdint.h>
 #endif
-typedef enum ease_chessgame_Location {
-    a8, b8, c8, d8, e8, f8, g8, h8,
-    a7, b7, c7, d7, e7, f7, g7, h7,
-    a6, b6, c6, d6, e6, f6, g6, h6,
-    a5, b5, c5, d5, e5, f5, g5, h5,
-    a4, b4, c4, d4, e4, f4, g4, h4,
-    a3, b3, c3, d3, e3, f3, g3, h3,
-    a2, b2, c2, d2, e2, f2, g2, h2,
-    a1, b1, c1, d1, e1, f1, g1, h1
-} ease_chessgame_Location;
 
-typedef enum ease_chessgame_Color {
-    Black, White
-} ease_chessgame_Color;
+const int ease_chessgame_BOARD_SIZE = 64;
+const int ease_chessgame_BOARD_DIMENSION = 8;
+const char ease_chessgame_PLAYER_WHITE = 'w';
+const char ease_chessgame_PLAYER_BLACK = 'b';
 
-typedef enum ease_chessgame_Piece {
-    Null,
-    WhitePawn, WhiteKnight, WhiteBishop, WhiteRock, WhiteQueen, WhiteKing,
-    BlackPawn, BlackKnight, BlackBishop, BlackRock, BlackQueen, BlackKing
-} ease_chessgame_Piece;
+enum {
+    ease_chessgame_FLAG_WHITE_KSIDE_CASTLING,
+    ease_chessgame_FLAG_WHITE_QSIDE_CASTLING,
+    ease_chessgame_FLAG_BLACK_KSIDE_CASTLING,
+    ease_chessgame_FLAG_BLACK_QSIDE_CASTLING
+};
 
-typedef struct ease_chessgame_Fen {
-    ease_chessgame_Piece board[64];
-    ease_chessgame_Color player;
-    _Bool kcastling[2];
-    _Bool qcastling[2];
-    ease_chessgame_Location enpassant;
-    int halfclock;
-    int fullmoves;
+typedef struct {
+    char board[64];
+    int16_t fullmoves;
+    char player;
+    int8_t enpassant;
+    int8_t halfclock;
+    bool flags[8];
 } ease_chessgame_Fen;
 
-typedef struct ease_chessgame_Move {
-    ease_chessgame_Location from;
-    ease_chessgame_Location to;
+typedef struct {
+    int from;
+    int to;
 } ease_chessgame_Move;
 
 //void ease_chessgame_register();
@@ -44,7 +37,8 @@ typedef struct ease_chessgame_Move {
 //void ease_chessgame_dirty_moves();
 //void ease_chessgame_valid_moves();
 //void ease_chasegame_move();
+ease_chessgame_Fen ease_chessgame_default_fen();
 ease_chessgame_Fen ease_chessgame_parse_fen(const char* fenstr);
 #ifdef __cplusplus
-} // namespace ease::chess::c { extern "C" {
+} // { extern "C" {
 #endif
