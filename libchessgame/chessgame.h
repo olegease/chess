@@ -39,6 +39,7 @@ typedef struct {
 //void ease_chasegame_move();
 ease_chessgame_Fen ease_chessgame_default_fen();
 ease_chessgame_Fen ease_chessgame_parse_fen(const char* fenstr);
+int ease_chessgame_index_from_location(const char* location);
 #ifdef __cplusplus
 } // { extern "C" {
 #endif

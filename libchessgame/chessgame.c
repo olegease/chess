@@ -1,5 +1,7 @@
 #include "chessgame.h"
 #include "stdbool.h"
+#include "stdlib.h"
+#include "ctype.h"
 
 #ifdef __cplusplus
 
@@ -24,8 +26,58 @@ ease_chessgame_Fen ease_chessgame_default_fen()
 ease_chessgame_Fen ease_chessgame_parse_fen(const char* fenstr)
 {
     ease_chessgame_Fen fen;
-    fen.board[0] = '0';
+    int curindex = 0;
+    while (!isspace(*fenstr)) {
+        if (*fenstr == '/') {
+            
+        }
+        else if (isdigit(*fenstr)) {
+            int count = atoi(fenstr);
+            while (count--) fen.board[curindex++] = '0';
+        }
+        else {
+            fen.board[curindex++] = *fenstr;
+        }
+        fenstr++;
+    }
+    fenstr++;
+    fen.player = *fenstr;
+    fenstr += 2;
+    bool castlingflags[4] = {false, false, false, false};
+    if (*fenstr == '-') {
+        fenstr++;
+    } else {
+        while (!isspace(*fenstr)) {
+            switch (*fenstr) {
+            case 'K': castlingflags[ease_chessgame_FLAG_WHITE_KSIDE_CASTLING] = true; break;
+            case 'Q': castlingflags[ease_chessgame_FLAG_WHITE_QSIDE_CASTLING] = true; break;
+            case 'k': castlingflags[ease_chessgame_FLAG_BLACK_KSIDE_CASTLING] = true; break;
+            case 'q': castlingflags[ease_chessgame_FLAG_BLACK_QSIDE_CASTLING] = true; break;
+            }
+            fenstr++;
+        }
+    }
+    for (int i = 0; i < 4; i++) fen.flags[i] = castlingflags[i];
+    fenstr++;
+    if (*fenstr == '-') {
+        fen.enpassant = ease_chessgame_BOARD_SIZE;
+    }
+    else {
+        fen.enpassant = (int8_t)ease_chessgame_index_from_location(fenstr);
+        fenstr++;
+    }
+    fenstr++;
+    char* trash;
+    while (!isspace(*fenstr++));
+    fen.halfclock = (int8_t)strtol(fenstr, &trash, 10);
+    while (!isspace(*fenstr++));
+    fen.fullmoves = (int16_t)strtol(fenstr, &trash, 10);
     return fen;
+}
+
+int ease_chessgame_index_from_location(const char* location)
+{
+    return ease_chessgame_BOARD_DIMENSION * (ease_chessgame_BOARD_DIMENSION - (location[1] - '0')) + (location[0] - 'a');
 }
 
 #ifdef __cplusplus
