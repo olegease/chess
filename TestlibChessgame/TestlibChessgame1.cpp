@@ -1,6 +1,12 @@
 #include "pch.h"
 #include "CppUnitTest.h"
 #include "../libchessgame/chessgame.h"
+#include <string>
+#include <map>
+#include <array>
+#include <cstring>
+#include <locale>
+
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace TestlibChessgame
@@ -67,6 +73,40 @@ namespace TestlibChessgame
             Assert::AreEqual((int8_t)44, testfen.enpassant);
             Assert::AreEqual('0', testfen.board[52]);
             Assert::AreEqual('P', testfen.board[36]);
+        }
+
+        TEST_METHOD(castling_all)
+        {
+            std::map< std::string, std::array< bool, 4 > > castlings {
+                {"KQkq",    {true,  true,   true,   true}},
+                {"KQk",     {true,  true,   true,   false}},
+                {"KQq",     {true,  true,   false,  true}},
+                {"Kkq",     {true,  false,  true,   true}},
+                {"Qkq",     {false, true,   true,   true}},
+                {"KQ",      {true,  true,   false,  false}},
+                {"Kk",      {true,  false,  true,   false}},
+                {"Kq",      {true,  false,  false,  true}},
+                {"Qk",      {false, true,   true,   false}},
+                {"Qq",      {false, true,   false,  true}},
+                {"kq",      {false, false,  true,   true}},
+                {"K",       {true,  false,  false,  false}},
+                {"Q",       {false, true,   false,  false}},
+                {"k",       {false, false,  true,   false}},
+                {"q",       {false, false,  false,  true}},
+                {"-",       {false, false,  false,  false}}
+            };
+            for (auto& pair : castlings) {
+                char bufbeg[128] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w ";
+                char bufmid[16] = "";
+                char bufend[] = " - 0 1";
+                std::strcat(bufmid, pair.first.c_str());
+                std::strcat(bufmid, bufend);
+                std::strcat(bufbeg, bufmid);
+                std::wstring_convert< std::codecvt< wchar_t, char, std::mbstate_t >, wchar_t > convwc;
+                std::wstring wstr = convwc.from_bytes(pair.first);
+                Fen fen = ease_chessgame_parse_fen(bufbeg);
+                for (int i = 0; i < 4; ++i) Assert::AreEqual<bool>(pair.second[i], fen.flags[i], wstr.c_str());
+            }
         }
     };
 
