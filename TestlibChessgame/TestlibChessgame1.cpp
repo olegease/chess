@@ -5,7 +5,8 @@
 #include <map>
 #include <array>
 #include <cstring>
-#include <locale>
+#include <atlbase.h>
+#include <atlconv.h>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -102,8 +103,8 @@ namespace TestlibChessgame
                 std::strcat(bufmid, pair.first.c_str());
                 std::strcat(bufmid, bufend);
                 std::strcat(bufbeg, bufmid);
-                std::wstring_convert< std::codecvt< wchar_t, char, std::mbstate_t >, wchar_t > convwc;
-                std::wstring wstr = convwc.from_bytes(pair.first);
+                ATL::CA2W ca2w(pair.first.c_str());
+                std::wstring wstr{ca2w};
                 Fen fen = ease_chessgame_parse_fen(bufbeg);
                 for (int i = 0; i < 4; ++i) Assert::AreEqual<bool>(pair.second[i], fen.flags[i], wstr.c_str());
             }

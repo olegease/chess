@@ -67,11 +67,10 @@ ease_chessgame_Fen ease_chessgame_parse_fen(const char* fenstr)
         fenstr++;
     }
     fenstr++;
-    char* trash;
+    char* tail;
     while (!isspace(*fenstr++));
-    fen.halfclock = (int8_t)strtol(fenstr, &trash, 10);
-    while (!isspace(*fenstr++));
-    fen.fullmoves = (int16_t)strtol(fenstr, &trash, 10);
+    fen.halfclock = (int8_t)strtol(fenstr, &tail, 10);
+    fen.fullmoves = (int16_t)strtol(tail, &tail, 10);
     return fen;
 }
 
