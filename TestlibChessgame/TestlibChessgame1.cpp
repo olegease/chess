@@ -130,4 +130,43 @@ namespace TestlibChessgame
             }
         }
     };
+
+    TEST_CLASS(piece_from_index)
+    {
+    public:
+        TEST_METHOD(default_white_king)
+        {
+            ease_chessgame_ID id = ease_chessgame_register(ease_chessgame_default_fen());
+            if (!id) {
+                Assert::Fail(L"game not created");
+                return;
+            }
+            for (int i = 0; i < ease_chessgame_BOARD_DIMENSION; ++i) {
+                if (i == 60) Assert::AreEqual('K', ease_chessgame_piece_from_index(id, i));
+                else Assert::AreNotEqual('K', ease_chessgame_piece_from_index(id, i));
+            }
+
+            ease_chessgame_unregister(id);
+        }
+    };
+
+    TEST_CLASS(is_registered)
+    {
+    public:
+        TEST_METHOD(zero_game_id)
+        {
+            Assert::AreEqual(false, ease_chessgame_is_registered(0));
+        }
+
+        TEST_METHOD(register_unregister_expect_false)
+        {
+            ease_chessgame_ID id = ease_chessgame_register(ease_chessgame_default_fen());
+            if (!id) {
+                Assert::Fail(L"Fail to register chess game");
+                return;
+            }
+            ease_chessgame_unregister(id);
+            Assert::AreEqual(false, ease_chessgame_is_registered(id));
+        }
+    };
 }

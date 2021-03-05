@@ -32,8 +32,12 @@ typedef struct {
     int to;
 } ease_chessgame_Move;
 
-//void ease_chessgame_register();
-//void ease_chessgame_unregister();
+typedef uint32_t ease_chessgame_ID;
+
+ease_chessgame_ID ease_chessgame_register(ease_chessgame_Fen fen);
+void ease_chessgame_unregister(ease_chessgame_ID gameid);
+bool ease_chessgame_is_registered(ease_chessgame_ID gameid);
+char ease_chessgame_piece_from_index(ease_chessgame_ID gameid, int index);
 //void ease_chessgame_dirty_moves();
 //void ease_chessgame_valid_moves();
 //void ease_chasegame_move();

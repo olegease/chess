@@ -7,6 +7,53 @@
 
 #endif
 
+typedef ease_chessgame_Fen Fen;
+
+typedef struct {
+    Fen fen;
+} Game;
+
+Game* game[1];
+
+ease_chessgame_ID correct_id(ease_chessgame_ID gameid) {
+    return gameid - 1;
+}
+
+ease_chessgame_ID ease_chessgame_register(ease_chessgame_Fen fen)
+{
+    static bool is_first_call = true;
+    if (is_first_call) {
+        game[0] = NULL;
+        is_first_call = false;
+    }
+    if (game[0] == NULL) {
+        game[0] = malloc(sizeof(Game));
+        if (game[0]) {
+            game[0]->fen = fen;
+            return 1;
+        }
+    }
+    return 0;
+}
+void ease_chessgame_unregister(ease_chessgame_ID gameid)
+{
+    free(game[correct_id(gameid)]);
+    game[correct_id(gameid)] = NULL;
+}
+
+bool ease_chessgame_is_registered(ease_chessgame_ID gameid)
+{
+    if (!gameid) return false;
+    if (game[correct_id(gameid)] == NULL) return false;
+    return true;
+}
+
+char ease_chessgame_piece_from_index(ease_chessgame_ID gameid, int index)
+{
+    Game* g = game[correct_id(gameid)];
+    return g->fen.board[index];
+}
+
 ease_chessgame_Fen ease_chessgame_default_fen()
 {
     static const char board[] = "rnbqkbnrpppppppp00000000000000000000000000000000PPPPPPPPRNBQKBNR";
