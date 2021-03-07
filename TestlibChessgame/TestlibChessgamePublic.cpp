@@ -1,12 +1,6 @@
 #include "pch.h"
-#include "CppUnitTest.h"
+#include "TestlibChessgame.hpp"
 #include "../libchessgame/chessgame.h"
-#include <string>
-#include <map>
-#include <array>
-#include <cstring>
-#include <atlbase.h>
-#include <atlconv.h>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -136,14 +130,12 @@ namespace TestlibChessgame::Public
     public:
         TEST_METHOD(default_white_king)
         {
-            ease_chessgame_ID id = ease_chessgame_register(ease_chessgame_default_fen());
-            if (!id) Assert::Fail(L"Fail to register chessgame");
+            RAII::Register regame{};
+            ease_chessgame_ID id = regame.id();
             for (int i = 0; i < ease_chessgame_BOARD_DIMENSION; ++i) {
                 if (i == 60) Assert::AreEqual('K', ease_chessgame_piece_from_index(id, i));
                 else Assert::AreNotEqual('K', ease_chessgame_piece_from_index(id, i));
             }
-
-            ease_chessgame_unregister(id);
         }
     };
 
@@ -157,9 +149,12 @@ namespace TestlibChessgame::Public
 
         TEST_METHOD(register_unregister_expect_false)
         {
-            ease_chessgame_ID id = ease_chessgame_register(ease_chessgame_default_fen());
-            if (!id) Assert::Fail(L"Fail to register chessgame");
-            ease_chessgame_unregister(id);
+            ease_chessgame_ID id = 0;
+            {
+                RAII::Register regame{};
+                ease_chessgame_ID id = regame.id();
+            }
+            
             Assert::AreEqual(false, ease_chessgame_is_registered(id));
         }
     };

@@ -6,6 +6,10 @@ extern "C" {
 #include <stdint.h>
 #endif
 
+typedef struct ease_chessgame_Fen ease_chessgame_Fen;
+typedef struct ease_chessgame_Move ease_chessgame_Move;
+typedef uint32_t ease_chessgame_ID;
+
 const int ease_chessgame_BOARD_SIZE = 64;
 const int ease_chessgame_BOARD_DIMENSION = 8;
 const char ease_chessgame_PLAYER_WHITE = 'w';
@@ -18,21 +22,19 @@ enum {
     ease_chessgame_FLAG_BLACK_QSIDE_CASTLING
 };
 
-typedef struct {
+struct ease_chessgame_Fen {
     char board[64];
     int16_t fullmoves;
     char player;
     int8_t enpassant;
     int8_t halfclock;
     bool flags[8];
-} ease_chessgame_Fen;
+};
 
-typedef struct {
+struct ease_chessgame_Move {
     int from;
     int to;
-} ease_chessgame_Move;
-
-typedef uint32_t ease_chessgame_ID;
+};
 
 ease_chessgame_ID ease_chessgame_register(ease_chessgame_Fen fen);
 void ease_chessgame_unregister(ease_chessgame_ID gameid);

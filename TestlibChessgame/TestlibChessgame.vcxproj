@@ -175,6 +175,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="TestlibChessgame.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libchessgame\libchessgame.vcxproj">

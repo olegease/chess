@@ -1,18 +1,8 @@
 #include "pch.h"
-#include "CppUnitTest.h"
+#include "TestlibChessgame.hpp"
 #include "../libchessgame/chessgame.private.h"
-#include <array>
-#include <memory>
-using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-class RAIIregister
-{
-    Id id_;
-public:
-    RAIIregister(Fen fen): id_(ease_chessgame_register(fen)) { }
-    int id() const { return id_; }
-    ~RAIIregister() { ease_chessgame_unregister(id_); }
-};
+using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace TestlibChessgame::Private
 {
@@ -23,9 +13,9 @@ namespace TestlibChessgame::Private
         {
             //RAIIregister reg{ease_chessgame_default_fen()};
             //Id id = reg.id();
-            Id id = ease_chessgame_register(ease_chessgame_default_fen());
-            if (!id) Assert::Fail(L"Fail to register chessgame");
-            Game* game = get_game(id);
+            RAII::Register regame{};
+            Id id = regame.id();
+            Game* game = Game_get(id);
             std::array< Move, 16 > test_moves{};
             auto size = test_moves.size();
             for (size_t i = 0; i < size; ++i) {
@@ -33,13 +23,11 @@ namespace TestlibChessgame::Private
                 Moves_manage(&game->moves, test_moves[i]);
             }
             Assert::AreEqual(16, game->moves.capacity, L"capacity");
-            Assert::AreEqual(15, game->moves.elements, L"elements");
+            Assert::AreEqual(16, game->moves.elements, L"elements");
             for (size_t i = 0; i < size; ++i) {
                 Assert::AreEqual(test_moves[i].from, game->moves.dirty[i].from);
                 Assert::AreEqual(test_moves[i].to, game->moves.dirty[i].to);
             }
-
-            ease_chessgame_unregister(id);
         }
     };
 }

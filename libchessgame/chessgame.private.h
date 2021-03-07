@@ -22,9 +22,11 @@ struct Game {
     Moves moves;
 };
 
-Game* get_game(Id id);
+Game* Game_get(Id id);
+Game* Game_create(Fen fen);
+void Game_destroy(Game* game);
 void Moves_manage(Moves* moves, Move move);
-void Moves_dirty(Moves moves);
+void Moves_dirty();
 void Moves_valid(Moves moves);
 Id correct_id(Id id);
 

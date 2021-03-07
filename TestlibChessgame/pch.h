@@ -8,5 +8,12 @@
 #define PCH_H
 
 // add headers that you want to pre-compile here
+#include <string>
+#include <map>
+#include <array>
+#include <memory>
+#include <cstring>
+#include <atlbase.h>
+#include <atlconv.h>
 
 #endif //PCH_H

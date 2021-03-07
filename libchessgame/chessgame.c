@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 #ifdef __cplusplus
 
@@ -17,39 +18,21 @@ Id ease_chessgame_register(Fen fen)
         games[0] = NULL;
         is_first_call = false;
     }
-    //if (games[0] == NULL) {
-        games[0] = malloc(sizeof(Game));
-        if (games[0]) {
-            games[0]->fen = fen;
-            games[0]->moves.elements = 0;
-            games[0]->moves.capacity = 16;
-            games[0]->moves.dirty = malloc(sizeof(*(games[0]->moves.dirty)) * games[0]->moves.capacity);
-            if (!games[0]->moves.dirty) goto zero;
-            games[0]->moves.valid = malloc(sizeof(*(games[0]->moves.valid)) * games[0]->moves.capacity);
-            if (!games[0]->moves.valid) goto zero;
-            return 1;
-        }
-    //}
-zero:
-    if (games[0]) {
-        if (games[0]->moves.dirty) free(games[0]->moves.dirty);
-        free(games[0]);
-    }
+
+    games[0] = Game_create(fen);
+    if (games[0]) return 1;
     return 0;
 }
 void ease_chessgame_unregister(Id gameid)
 {
-    Id id = correct_id(gameid);
-    free(games[id]->moves.dirty);
-    free(games[id]->moves.valid);
-    free(games[id]);
+    Game_destroy(Game_get(gameid));
     games[correct_id(gameid)] = NULL;
 }
 
 bool ease_chessgame_is_registered(Id gameid)
 {
     if (!gameid) return false;
-    if (games[correct_id(gameid)] == NULL) return false;
+    if (!games[correct_id(gameid)]) return false;
     return true;
 }
 
@@ -137,9 +120,40 @@ Id correct_id(Id id)
     return id - 1;
 }
 
-Game* get_game(Id id)
+Game* Game_create(Fen fen)
+{
+    Game* created = malloc(sizeof(Game));
+    if (created) {
+        created->fen = fen;
+        created->moves.elements = 0;
+        created->moves.capacity = 16;
+        created->moves.dirty = malloc(sizeof *(created->moves.dirty) * created->moves.capacity);
+        if (!created->moves.dirty) {
+            free(created);
+            return NULL;
+        }
+        created->moves.valid = malloc(sizeof *(created->moves.valid) * created->moves.capacity);
+        if (!created->moves.valid) {
+            free(created->moves.dirty);
+            free(created);
+            return NULL;
+        }
+
+    }
+
+    return created;
+}
+
+Game* Game_get(Id id)
 {
     return games[correct_id(id)];
+}
+
+void Game_destroy(Game* game)
+{
+    free(game->moves.dirty);
+    free(game->moves.valid);
+    free(game);
 }
 
 void Moves_manage(Moves* moves, Move move)
