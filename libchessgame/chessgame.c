@@ -1,60 +1,65 @@
-#include "chessgame.h"
-#include "stdbool.h"
-#include "stdlib.h"
-#include "ctype.h"
+#include "chessgame.private.h"
+#include <stdbool.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #ifdef __cplusplus
 
 #endif
 
-typedef ease_chessgame_Fen Fen;
+static Game* games[1];
 
-typedef struct {
-    Fen fen;
-} Game;
-
-Game* game[1];
-
-ease_chessgame_ID correct_id(ease_chessgame_ID gameid) {
-    return gameid - 1;
-}
-
-ease_chessgame_ID ease_chessgame_register(ease_chessgame_Fen fen)
+// public section definitions
+Id ease_chessgame_register(Fen fen)
 {
     static bool is_first_call = true;
     if (is_first_call) {
-        game[0] = NULL;
+        games[0] = NULL;
         is_first_call = false;
     }
-    if (game[0] == NULL) {
-        game[0] = malloc(sizeof(Game));
-        if (game[0]) {
-            game[0]->fen = fen;
+    //if (games[0] == NULL) {
+        games[0] = malloc(sizeof(Game));
+        if (games[0]) {
+            games[0]->fen = fen;
+            games[0]->moves.elements = 0;
+            games[0]->moves.capacity = 16;
+            games[0]->moves.dirty = malloc(sizeof(*(games[0]->moves.dirty)) * games[0]->moves.capacity);
+            if (!games[0]->moves.dirty) goto zero;
+            games[0]->moves.valid = malloc(sizeof(*(games[0]->moves.valid)) * games[0]->moves.capacity);
+            if (!games[0]->moves.valid) goto zero;
             return 1;
         }
+    //}
+zero:
+    if (games[0]) {
+        if (games[0]->moves.dirty) free(games[0]->moves.dirty);
+        free(games[0]);
     }
     return 0;
 }
-void ease_chessgame_unregister(ease_chessgame_ID gameid)
+void ease_chessgame_unregister(Id gameid)
 {
-    free(game[correct_id(gameid)]);
-    game[correct_id(gameid)] = NULL;
+    Id id = correct_id(gameid);
+    free(games[id]->moves.dirty);
+    free(games[id]->moves.valid);
+    free(games[id]);
+    games[correct_id(gameid)] = NULL;
 }
 
-bool ease_chessgame_is_registered(ease_chessgame_ID gameid)
+bool ease_chessgame_is_registered(Id gameid)
 {
     if (!gameid) return false;
-    if (game[correct_id(gameid)] == NULL) return false;
+    if (games[correct_id(gameid)] == NULL) return false;
     return true;
 }
 
-char ease_chessgame_piece_from_index(ease_chessgame_ID gameid, int index)
+char ease_chessgame_piece_from_index(Id gameid, int index)
 {
-    Game* g = game[correct_id(gameid)];
+    Game* g = games[correct_id(gameid)];
     return g->fen.board[index];
 }
 
-ease_chessgame_Fen ease_chessgame_default_fen()
+Fen ease_chessgame_default_fen()
 {
     static const char board[] = "rnbqkbnrpppppppp00000000000000000000000000000000PPPPPPPPRNBQKBNR";
     ease_chessgame_Fen fen;
@@ -70,7 +75,7 @@ ease_chessgame_Fen ease_chessgame_default_fen()
     return fen;
 }
 
-ease_chessgame_Fen ease_chessgame_parse_fen(const char* fenstr)
+Fen ease_chessgame_parse_fen(const char* fenstr)
 {
     ease_chessgame_Fen fen;
     int curindex = 0;
@@ -124,6 +129,31 @@ ease_chessgame_Fen ease_chessgame_parse_fen(const char* fenstr)
 int ease_chessgame_index_from_location(const char* location)
 {
     return ease_chessgame_BOARD_DIMENSION * (ease_chessgame_BOARD_DIMENSION - (location[1] - '0')) + (location[0] - 'a');
+}
+
+// private section definitions
+Id correct_id(Id id)
+{
+    return id - 1;
+}
+
+Game* get_game(Id id)
+{
+    return games[correct_id(id)];
+}
+
+void Moves_manage(Moves* moves, Move move)
+{
+    if (moves->elements + 1 > moves->capacity) {
+        int new_cap = moves->capacity * 2;
+        Move* new_dirty = realloc(moves->dirty, new_cap);
+        if (new_dirty) moves->dirty = new_dirty;
+        int* new_valid = realloc(moves->valid, new_cap);
+        if (new_valid) moves->valid = new_valid;
+        moves->capacity = new_cap;
+    }
+    moves->dirty[moves->elements] = move;
+    moves->elements++;
 }
 
 #ifdef __cplusplus

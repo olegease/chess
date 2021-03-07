@@ -18,7 +18,10 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TestlibChessgame1.cpp">
+    <ClCompile Include="TestlibChessgamePrivate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TestlibChessgamePublic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -10,7 +10,7 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-namespace TestlibChessgame
+namespace TestlibChessgame::Public
 {
     using Fen = ease_chessgame_Fen;
     TEST_CLASS(default_fen)
@@ -137,10 +137,7 @@ namespace TestlibChessgame
         TEST_METHOD(default_white_king)
         {
             ease_chessgame_ID id = ease_chessgame_register(ease_chessgame_default_fen());
-            if (!id) {
-                Assert::Fail(L"game not created");
-                return;
-            }
+            if (!id) Assert::Fail(L"Fail to register chessgame");
             for (int i = 0; i < ease_chessgame_BOARD_DIMENSION; ++i) {
                 if (i == 60) Assert::AreEqual('K', ease_chessgame_piece_from_index(id, i));
                 else Assert::AreNotEqual('K', ease_chessgame_piece_from_index(id, i));
@@ -161,10 +158,7 @@ namespace TestlibChessgame
         TEST_METHOD(register_unregister_expect_false)
         {
             ease_chessgame_ID id = ease_chessgame_register(ease_chessgame_default_fen());
-            if (!id) {
-                Assert::Fail(L"Fail to register chess game");
-                return;
-            }
+            if (!id) Assert::Fail(L"Fail to register chessgame");
             ease_chessgame_unregister(id);
             Assert::AreEqual(false, ease_chessgame_is_registered(id));
         }

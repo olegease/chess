@@ -18,6 +18,9 @@
     <ClInclude Include="chessgame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="chessgame.private.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chessgame.c">
