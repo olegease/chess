@@ -126,6 +126,15 @@ Id correct_id(Id id)
     return id - 1;
 }
 
+int row_from_index(Index index)
+{
+    return index / ease_chessgame_BOARD_DIMENSION + 1;
+}
+int col_from_index(Index index)
+{
+    return index % ease_chessgame_BOARD_DIMENSION + 1;
+}
+
 void Piece_swap(Piece* lhs, Piece* rhs)
 {
     Piece tmp = *lhs;
@@ -177,13 +186,71 @@ void Game_destroy(Game* game)
     free(game);
 }
 
+void Game_moves_dirty(Game* game)
+{
+    Moves* moves = &game->moves;
+    int white = game->fen.player == ease_chessgame_PLAYER_WHITE ? 1 : 0;
+    Index doublemove_row[2] = { 2, 7 };
+    int dir = white ? -1 : 1;
+    for (int i = 0; i < ease_chessgame_BOARD_SIZE; ++i) {
+        Piece piece = game->fen.board[i];
+        if (piece == '0') continue;
+        int opponent = !white;
+        if (white) {
+            if (islower(piece)) continue;
+        }
+        else {
+            if (isupper(piece)) continue;
+        }
+        Move move = {i, ease_chessgame_BOARD_SIZE};
+        switch (toupper(piece)) {
+        case 'P': {
+            move.to = move.from + 8 * dir;
+            if (game->fen.board[move.to] == '0') {
+                Moves_manage(moves, move);
+                move.to = move.from + 16 * dir;
+                if (game->fen.board[move.to] == '0' && row_from_index(move.from) == doublemove_row[white]) {
+                    Moves_manage(moves, move);
+                }
+            }
+            
+            Index side_movesto[2] = { move.from + 7 * dir, move.from + 9 * dir };
+            for (int i = 0; i < 2; ++i) {
+                move.to = side_movesto[i];
+                if (move.to >= 0 && move.to < 64
+                    && game->fen.board[move.to] != '0'
+                    && row_from_index(move.to) != row_from_index(move.from)
+                    && opponent == isupper(game->fen.board[move.to])
+                    ) {
+                    Moves_manage(moves, move);
+                }
+            }
+            break; }
+        case 'N': {
+            Index index_adds[8] = { -17, -15, -10, -6, 6, 10, 15, 17 };
+            for (int i = 0; i < 8; ++i) {
+                move.to = move.from + index_adds[i];
+                if (move.to < 0 || move.to > 63) continue;
+                if (i < 4 && row_from_index(move.to) > row_from_index(move.from)
+                    || i >= 4 && row_from_index(move.to) < row_from_index(move.from)) continue;
+                if (i % 2 && col_from_index(move.to) < col_from_index(move.from)
+                    || !(i % 2) && col_from_index(move.to) > col_from_index(move.from)) continue;
+                if (white && isupper(game->fen.board[move.to])
+                   || opponent && islower(game->fen.board[move.to])) continue;
+                Moves_manage(moves, move);
+            }
+            break; }
+        }
+    }
+}
+
 void Moves_manage(Moves* moves, Move move)
 {
     if (moves->elements + 1 > moves->capacity) {
         int new_cap = moves->capacity * 2;
-        Move* new_dirty = realloc(moves->dirty, new_cap);
+        Move* new_dirty = realloc(moves->dirty, sizeof *moves->dirty * new_cap);
         if (new_dirty) moves->dirty = new_dirty;
-        int* new_valid = realloc(moves->valid, new_cap);
+        int* new_valid = realloc(moves->valid, sizeof *moves->valid * new_cap);
         if (new_valid) moves->valid = new_valid;
         moves->capacity = new_cap;
     }

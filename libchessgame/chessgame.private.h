@@ -30,10 +30,12 @@ Game* Game_create(Fen fen);
 void Game_move(Game* game, Move move);
 void Game_destroy(Game* game);
 void Moves_manage(Moves* moves, Move move);
-void Moves_dirty();
+void Game_moves_dirty(Game* game);
 void Moves_valid(Moves moves);
 Id correct_id(Id id);
 void Piece_swap(Piece* l, Piece* r);
+int row_from_index(Index index);
+int col_from_index(Index index);
 
 #ifdef __cplusplus
 }
