@@ -158,4 +158,32 @@ namespace TestlibChessgame::Public
             Assert::AreEqual(false, ease_chessgame_is_registered(id));
         }
     };
+
+    TEST_CLASS(move)
+    {
+    public:
+        TEST_METHOD(default_moves_to_legalmate)
+        {
+            using Move = ease_chessgame_Move;
+            RAII::Register regame{};
+            ease_chessgame_ID id = regame.id();
+            const ease_chessgame_Piece endposition[] = "r00q0bnrppp0kBpp00np0000000NN0000000P00000000000PPPP0PPPR0BbK00R";
+            std::array< ease_chessgame_Move, 13 > legalorder{
+                Move{loc(Loc::e2), loc(Loc::e4)}, Move{loc(Loc::e7), loc(Loc::e5)},
+                Move{loc(Loc::f1), loc(Loc::c4)}, Move{loc(Loc::d7), loc(Loc::d6)},
+                Move{loc(Loc::g1), loc(Loc::f3)}, Move{loc(Loc::b8), loc(Loc::c6)},
+                Move{loc(Loc::b1), loc(Loc::c3)}, Move{loc(Loc::c8), loc(Loc::g4)},
+                Move{loc(Loc::f3), loc(Loc::e5)}, Move{loc(Loc::g4), loc(Loc::d1)},
+                Move{loc(Loc::c4), loc(Loc::f7)}, Move{loc(Loc::e8), loc(Loc::e7)},
+                Move{loc(Loc::c3), loc(Loc::d5)} // mate#
+            };
+
+            for (auto& move : legalorder) {
+                ease_chessgame_move(id, move);
+            }
+            for (int i = 0; i < ease_chessgame_BOARD_SIZE; ++i) {
+                Assert::AreEqual(endposition[i], ease_chessgame_piece_from_index(id, i));
+            }
+        }
+    };
 }

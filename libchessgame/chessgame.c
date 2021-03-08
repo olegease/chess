@@ -114,10 +114,23 @@ int ease_chessgame_index_from_location(const char* location)
     return ease_chessgame_BOARD_DIMENSION * (ease_chessgame_BOARD_DIMENSION - (location[1] - '0')) + (location[0] - 'a');
 }
 
+void ease_chessgame_move(Id gameid, Move move)
+{
+    Game* game = Game_get(gameid);
+    Game_move(game, move);
+}
+
 // private section definitions
 Id correct_id(Id id)
 {
     return id - 1;
+}
+
+void Piece_swap(Piece* lhs, Piece* rhs)
+{
+    Piece tmp = *lhs;
+    *lhs = *rhs;
+    *rhs = tmp;
 }
 
 Game* Game_create(Fen fen)
@@ -147,6 +160,14 @@ Game* Game_create(Fen fen)
 Game* Game_get(Id id)
 {
     return games[correct_id(id)];
+}
+
+void Game_move(Game* game, Move move)
+{
+    Piece* p = &(game->fen.board[move.from]);
+    Piece* o = &(game->fen.board[move.to]);
+    *o = '0';
+    Piece_swap(p, o);
 }
 
 void Game_destroy(Game* game)
